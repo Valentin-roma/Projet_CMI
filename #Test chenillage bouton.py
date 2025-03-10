@@ -21,7 +21,7 @@ def my_callback(bouton):#Fonction de rappel executé lorsqu'un évènement est d
 
 
 def main():
-    GPIO.add_event_detect(bouton, GPIO.FALLING, callback=my_callback)#détecte un appui sur le bouton (flanc montant) et appelle my_callback
+    GPIO.add_event_detect(bouton, GPIO.FALLING, callback=my_callback, bouncetime=200)#détecte un appui sur le bouton (flanc montant) et appelle my_callback
     x=0
     while True:
         while x==1:
