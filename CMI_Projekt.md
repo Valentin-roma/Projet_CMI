@@ -5,7 +5,9 @@ Bitte finden Sie unseren Code in den verschiedenen Dateien, die der jeweiligen N
 Sie finden verschiedene abwechslungsreiche Codes, die von zwei Erstesemestersstudenten gesucht wurden.
 
 Viel Spaß,
+
 Bis zum nächsten.
 
 Mit freundlichen Grüßen, 
+
 BASTIAN Alexandre un ROY-MAMER Valentin
