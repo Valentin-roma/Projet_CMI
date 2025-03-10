@@ -3,7 +3,7 @@ import RPi.GPIO as GPIO  # Importe la bibliothèque RPi.GPIO
 import time  # Importe la bibliothèque time
 
 
-led =
+led = 12
 freq = 1000 
 
 def setup():
