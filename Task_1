@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+#Code d'allumage d'une LED
+
 import RPi.GPIO as GPIO #importe la bibliotheque RPIO.GPIO pour controler la carte
 import time #importe la bibliotheque time
 led = 11   #defini le port a laquelle la led est connecté
