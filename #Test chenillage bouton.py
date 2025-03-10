@@ -16,7 +16,7 @@ def setup():
 def my_callback(bouton):#Fonction de rappel executé lorsqu'un évènement est détecté
     if GPIO.input(bouton) == GPIO.LOW and x==1:  # Si le bouton est pressé (LOW en mode pull-up)
         x=0  # Démarre le chenillard
-    elif GPIO.input(bouton) == GPIO.LOW and x==1:
+    elif GPIO.input(bouton) == GPIO.LOW and x==0:
         x=1
 
 
