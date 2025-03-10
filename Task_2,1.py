@@ -4,9 +4,9 @@ import RPi.GPIO as GPIO #importe la bibliotheque RPIO.GPIO pour controler la car
 import time #importe la bibliotheque time
 nmbreled = [22,12,18,16,11,13,7,15] #Liste des ports de chaque LED connecté (rangés par ordre du chenillage)
 def setup():
-    GPIO.setmode(GPIO.BOARD)
-    for led in nmbreled:
-        GPIO.setup(led, GPIO.OUT)
+    GPIO.setmode(GPIO.BOARD)# Utilise la numérotation physique des broches (BOARD)
+    for led in nmbreled:# Parcourt chaque élément de la liste nmbreled
+        GPIO.setup(led, GPIO.OUT) # Configure la broche led comme une sortie
 
 
 def main():
