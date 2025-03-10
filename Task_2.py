@@ -20,20 +20,20 @@ def main():
         else:
             GPIO.output(led, GPIO.HIGH) #Sinon la LED s'éteint (HIGH pour que la différence de potentiel soit nulle)
             print("la led s'éteint !")
-
+#Polling
 def my_callback(channel):
     if GPIO.input(bouton) == GPIO.LOW:  # Si le bouton est pressé
         GPIO.output(led, GPIO.LOW)  # Allume la LED
         print("La LED s'allume !")
-    else:
+    else: #sinon
         GPIO.output(led, GPIO.HIGH)  # Éteint la LED
         print("La LED s'éteint !")
 
 def main():
-    GPIO.add_event_detect(bouton, GPIO.BOTH, callback=my_callback)# Configurer une interruption sur le flanc descendant (appui sur le bouton)
+    GPIO.add_event_detect(bouton, GPIO.FALLING, callback=my_callback)# Configurer une interruption sur le flanc descendant (appui sur le bouton)
     try:
-        while True:  # Boucle principale (le programme peut faire autre chose)
-            time.sleep(1)  # Réduire l'utilisation du CPU
+        while True:  # Boucle permmetant que le programme ne s'arrete pas 
+            time.sleep(1)  #attendre
 
 
 
