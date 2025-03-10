@@ -1,4 +1,3 @@
-#Chenillage de LED 
 
 import RPi.GPIO as GPIO #importe la bibliotheque RPIO.GPIO pour controler la carte
 import time #importe la bibliotheque time
