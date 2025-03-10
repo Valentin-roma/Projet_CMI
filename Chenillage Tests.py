@@ -25,7 +25,7 @@ def setup():
     GPIO.setup(led8,GPIO.OUT)#Configure la broche dee la LED8 comme une sortie 
 
 
-"""
+
 def main():
     while True:
         GPIO.output(led1, GPIO.LOW)
@@ -59,10 +59,9 @@ def main():
         GPIO.output(led8, GPIO.LOW)
         time.sleep(0.2)
         GPIO.output(led8,GPIO.HIGH)
-"""
 
-def main():
-    while True:
+
+
         
 
 
