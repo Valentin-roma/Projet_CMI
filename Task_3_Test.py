@@ -4,14 +4,14 @@ import RPi.GPIO as GPIO #importe la bibliotheque RPIO.GPIO pour controler la car
 import time #importe la bibliotheque time
 
 #Led = Port (defini le port a laquelle la led est connecté)
-led1 = 22
-led2 = 12
-led3 = 18
-led4 = 16
-led5 = 11
-led6 = 13
-led7 = 7
-led8 = 15
+led1 = 22 #Port de la LED 1
+led2 = 12 #Port de la LED 2
+led3 = 18 #Port de la LED 3
+led4 = 16 #Port de la LED 4
+led5 = 11 #Port de la LED 5
+led6 = 13 #Port de la LED 6
+led7 = 7 #Port de la LED 7
+led8 = 15 #Port de la LED 8
 
 def setup():
     GPIO.setmode(GPIO.BOARD)#Définit le mode de numération des broches en mode BOARD (numérotation physique)
@@ -28,68 +28,42 @@ def setup():
 
 def main():
     while True:
-        GPIO.output(led1, GPIO.LOW)
-        time.sleep(0.2)
+        #Allumer chaque LED une part une puis l'éteindre après O.2s
+        GPIO.output(led1, GPIO.LOW) #Allume la LED 1
+        time.sleep(0.2) #Pause de 0.2s
         GPIO.output(led1,GPIO.HIGH)
 
-        GPIO.output(led2, GPIO.LOW)
-        time.sleep(0.2)
-        GPIO.output(led2,GPIO.HIGH)
+        GPIO.output(led2, GPIO.LOW) #Allume la LED 1
+        time.sleep(0.2) #Pause de 0.2s
+        GPIO.output(led2,GPIO.HIGH) #Eteint la LED 1
 
-        GPIO.output(led3, GPIO.LOW)
-        time.sleep(0.2)
-        GPIO.output(led3,GPIO.HIGH)
+        GPIO.output(led3, GPIO.LOW) #Allume la LED 2
+        time.sleep(0.2) #Pause de 0.2s
+        GPIO.output(led3,GPIO.HIGH) #Eteint la LED 2
 
-        GPIO.output(led4, GPIO.LOW)
-        time.sleep(0.2)
-        GPIO.output(led4,GPIO.HIGH)
+        GPIO.output(led4, GPIO.LOW) #Allume la LED 3
+        time.sleep(0.2) #Pause de 0.2s
+        GPIO.output(led4,GPIO.HIGH) #Eteint la LED 3
 
-        GPIO.output(led5, GPIO.LOW)
-        time.sleep(0.2)
-        GPIO.output(led5,GPIO.HIGH)
+        GPIO.output(led5, GPIO.LOW) #Allume la LED 4
+        time.sleep(0.2) #Pause de 0.2s
+        GPIO.output(led5,GPIO.HIGH) #Eteint la LED 4
 
-        GPIO.output(led6, GPIO.LOW)
-        time.sleep(0.2)
-        GPIO.output(led6,GPIO.HIGH)
+        GPIO.output(led6, GPIO.LOW) #Allume la LED 5
+        time.sleep(0.2) #Pause de 0.2s
+        GPIO.output(led6,GPIO.HIGH) #Eteint la LED 5
 
-        GPIO.output(led7, GPIO.LOW)
-        time.sleep(0.2)
-        GPIO.output(led7,GPIO.HIGH)
+        GPIO.output(led7, GPIO.LOW) #Allume la LED 6
+        time.sleep(0.2) #Pause de 0.2s
+        GPIO.output(led7,GPIO.HIGH) #Eteint la LED 6
 
-        GPIO.output(led8, GPIO.LOW)
-        time.sleep(0.2)
-        GPIO.output(led8,GPIO.HIGH)
-
-
-
-        
+        GPIO.output(led8, GPIO.LOW) #Allume la LED 7
+        time.sleep(0.2) #Pause de 0.2s
+        GPIO.output(led8,GPIO.HIGH) #Eteint la LED 6
 
 
 
         
-            
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 def destroy():
@@ -100,8 +74,8 @@ def destroy():
 
 #If run this script directly, do:
 if __name__ == '__main__':
-    destroy()
-    setup()
+    destroy() 
+    setup() 
     try:
         main()
     #When 'Ctrl+C' is pressed, the child program 
