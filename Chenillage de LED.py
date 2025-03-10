@@ -2,7 +2,7 @@
 
 import RPi.GPIO as GPIO #importe la bibliotheque RPIO.GPIO pour controler la carte
 import time #importe la bibliotheque time
-nmbreled = [22,12,18,16,11,13,7,15]
+nmbreled = [22,12,18,16,11,13,7,15] #Liste des ports de chaque LED connecté (rangés par ordre du chenillage)
 def setup():
     GPIO.setmode(GPIO.BOARD)
     for led in nmbreled:
