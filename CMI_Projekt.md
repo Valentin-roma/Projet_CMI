@@ -8,4 +8,4 @@ Viel Spaß, bis zum nächsten.
 
 Mit freundlichen Grüßen, 
 
-BASTIAN Alexandre un ROY-MAMER Valentin
+BASTIAN Alexandre und ROY-MAMER Valentin
