@@ -15,15 +15,16 @@ def setup():
 
 def my_callback(bouton):#Fonction de rappel executé lorsqu'un évènement est détecté
     if GPIO.input(bouton) == GPIO.LOW and x==1:  # Si le bouton est pressé (LOW en mode pull-up)
-        x=0  # Démarre le chenillard
+        x=0  # Eteint le chenillard
     elif GPIO.input(bouton) == GPIO.LOW and x==0:
-        x=1
+        x=1   #Allume le chenillard
 
 
 def main():
     GPIO.add_event_detect(bouton, GPIO.FALLING, callback=my_callback)#détecte un appui sur le bouton (flanc montant) et appelle my_callback
-    x=1
-    while x==1:
+    x=0
+    while True:
+        while x==1:
             for led in nmbreled: #Parcours la liste et prend chaque valeur de celle-ci sous la variable led
                 GPIO.output(led, GPIO.LOW)#Allume la LED lorsque l'évènement est détecté
                 time.sleep(0.05) #Mets un temps d'arrêt
@@ -35,36 +36,7 @@ def main():
                 time.sleep(0.05) #Mets un temps d'arrêt
                 GPIO.output(led,GPIO.HIGH)#Eteint la LED lorsque l'évènement est détecté
     
-
-                
-
-
-                    
-                        
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    
 
 
 def destroy():
