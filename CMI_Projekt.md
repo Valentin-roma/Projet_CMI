@@ -1,2 +1,10 @@
 # Privat_CMI_Projekt
-M
+Hallo lieber Nutzer,
+Bitte finden Sie unseren Code in den verschiedenen Dateien, die der jeweiligen Nutzung zugeordnet sind. 
+Sie finden verschiedene abwechslungsreiche Codes, die von zwei Erstesemestersstudenten gesucht wurden.
+
+Viel Spaß,
+Bis zum nächsten.
+
+Mit freundlichen Grüßen, 
+BASTIAN Alexandre un ROY-MAMER Valentin
