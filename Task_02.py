@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+#CODE Bouton - LED
+
 import RPi.GPIO as GPIO #importe la bibliotheque RPIO.GPIO pour controler la carte
 import time #importe la bibliotheque time
 led = 11   #defini le port a laquelle la led est connecté
@@ -10,13 +12,13 @@ def setup():
     GPIO.setup(bouton,GPIO.IN)#Configure la broche du bouton comme une entrée
 
 
-def main():
-    while True:
-        if GPIO.input(bouton)==GPIO.LOW:
-            GPIO.output(led, GPIO.LOW)
+def main(): 
+    while True: # Vérifie l'état du bouton
+        if GPIO.input(bouton)==GPIO.LOW: #Si le bouton est préssé
+            GPIO.output(led, GPIO.LOW) #Alors la LED s'allume (LOW pour qu'il y ait une différence de potentiel)
             print("la led s'allume !")
         else:
-            GPIO.output(led, GPIO.HIGH)
+            GPIO.output(led, GPIO.HIGH) #Sinon la LED s'éteint (HIGH pour que la différence de potentiel soit nulle)
             print("la led s'éteint !")
 
 
