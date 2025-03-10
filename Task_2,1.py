@@ -10,38 +10,16 @@ def setup():
 
 
 def main():
-    while True:
-    
-        for led in nmbreled:
-            GPIO.output(led, GPIO.LOW)
-            time.sleep(0.05)
-            GPIO.output(led,GPIO.HIGH)
-        for i in range(len(nmbreled)-1,-1,-1):
-            led=nmbreled[i]
-            GPIO.output(led,GPIO.LOW)
-            time.sleep(0.05)
-            GPIO.output(led,GPIO.HIGH)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    while True: #définit une condition de boucle toujours vraie   
+        for led in nmbreled: #parcourt la liste des LED et associe a led une valeur de nmbreled
+            GPIO.output(led, GPIO.LOW)# Allume la LED
+            time.sleep(0.05) # Attend 0.05 seconde
+            GPIO.output(led,GPIO.HIGH)# Éteint la LED
+        for i in range(len(nmbreled)-1,-1,-1):#parcourt la liste des LED en sens inverse
+            led=nmbreled[i]# associe a led la valeur actuelle de la boucle afin de parcourir la boucle en inverse
+            GPIO.output(led,GPIO.LOW) # Allume la LED
+            time.sleep(0.05)# Attend 0.05 seconde
+            GPIO.output(led,GPIO.HIGH) # Éteint la LED
 
 
 
