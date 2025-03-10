@@ -9,3 +9,6 @@ Viel Spaß, bis zum nächsten.
 Mit freundlichen Grüßen, 
 
 BASTIAN Alexandre und ROY-MAMER Valentin
+
+
+"Man reist nicht um anzukommen, sondern um zu reisen.", Goethe
