@@ -11,4 +11,4 @@ Mit freundlichen Grüßen,
 BASTIAN Alexandre und ROY-MAMER Valentin
 
 
-"Man reist nicht um anzukommen, sondern um zu reisen.", Goethe
+"Mystisches Denken ist eine transzendente Entwicklung der Intelligenz, die sich von einem Teil der realen Welt trennt un glaubt, sie weit hinter sich zu lassen.", Goethe
