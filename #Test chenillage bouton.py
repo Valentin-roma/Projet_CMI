@@ -4,25 +4,27 @@ import RPi.GPIO as GPIO #importe la bibliotheque RPIO.GPIO pour controler la car
 import time #importe la bibliotheque time
 nmbreled = [22,12,18,16,11,13,7,15] #Liste des ports pour chaque LED
 bouton = 32
+x=False
 
 def setup():
     GPIO.setmode(GPIO.BOARD)#Définit le mode de numération des broches en mode BOARD (numérotation physique)
-    GPIO.setup(bouton, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)# Configure le bouton en entrée
+    GPIO.setup(bouton, GPIO.IN, pull_up_down=GPIO.PUD_UP)# Configure le bouton en entrée
     for led in nmbreled:#Parcours la liste et prend chaque valeur de celle-ci sous la variable led
         GPIO.setup(led, GPIO.OUT)#Configure la broche de chaque LED comme une sortie
  
 
 
 def my_callback():#Fonction de rappel executé lorsqu'un évènement est détecté
+    global x
     if GPIO.input(bouton) == GPIO.LOW:  # Si le bouton est pressé (LOW en mode pull-up)
         x=not x
 
 
 def main():
-    GPIO.add_event_detect(bouton, GPIO.BOTH, callback=my_callback)#détecte un appui sur le bouton et appelle my_callback
-    x=False
+    global x
+    GPIO.add_event_detect(bouton, GPIO.FALLING, callback=my_callback)#détecte un appui sur le bouton et appelle my_callback
     while True:
-        while x==True:
+        while x:
             for led in nmbreled: #Parcours la liste et prend chaque valeur de celle-ci sous la variable led
                 GPIO.output(led, GPIO.LOW)#Allume la LED lorsque l'évènement est détecté
                 time.sleep(0.05) #Mets un temps d'arrêt
