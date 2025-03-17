@@ -5,30 +5,39 @@ import time  # Importation de la bibliothèque pour gérer les délais
 LED_PIN = 17  # Broche GPIO pour la LED
 BUTTON_PIN = 27  # Broche GPIO pour le bouton poussoir
 
-# Initialisation des GPIO
-GPIO.setmode(GPIO.BCM)  # Utilisation de la numérotation BCM des GPIO
-GPIO.setup(LED_PIN, GPIO.OUT)  # Configuration de la broche LED en sortie
-GPIO.setup(BUTTON_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # Configuration de la broche bouton en entrée avec résistance de pull-up
-
 # Variable pour suivre l'état de la LED
 led_state = False  # La LED est éteinte par défaut
 
-try:
-    while True:  # Boucle infinie
-        # Lecture de l'état du bouton
-        button_state = GPIO.input(BUTTON_PIN)
-        
-        # Si le bouton est pressé (état LOW car pull-up)
-        if button_state == GPIO.LOW:
-            time.sleep(0.1)  # Délai pour éviter les rebonds
-            if button_state == GPIO.LOW:  # Vérification pour confirmer l'appui
-                led_state = not led_state  # Inversion de l'état de la LED
-                GPIO.output(LED_PIN, led_state)  # Mise à jour de l'état de la LED
-                print("LED allumée" if led_state else "LED éteinte")  # Affichage de l'état
-                time.sleep(0.5)  # Délai pour éviter les multiples détections
+# Fonction pour nettoyer les GPIO
+def destroy():
+    GPIO.cleanup()  # Nettoyage des broches GPIO
+    print("GPIO nettoyés, programme terminé.")
 
-except KeyboardInterrupt:  # Gestion de l'interruption par Ctrl+C
-    print("Programme arrêté")
+# Fonction de callback pour l'événement du bouton
+def button_callback(channel):
+    global led_state  # Utilisation de la variable globale
+    led_state = not led_state  # Inversion de l'état de la LED
+    GPIO.output(LED_PIN, led_state)  # Mise à jour de l'état de la LED
+    print("LED allumée" if led_state else "LED éteinte")  # Affichage de l'état
 
-finally:
-    GPIO.cleanup()  # Nettoyage des GPIO
+# Initialisation des GPIO
+def setup():
+    GPIO.setmode(GPIO.BCM)  # Utilisation de la numérotation BCM des GPIO
+    GPIO.setup(LED_PIN, GPIO.OUT)  # Configuration de la broche LED en sortie
+    GPIO.setup(BUTTON_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # Configuration de la broche bouton en entrée avec résistance de pull-up
+    GPIO.add_event_detect(BUTTON_PIN, GPIO.FALLING, callback=button_callback, bouncetime=300)  # Détection d'un appui sur le bouton
+
+# Programme principal
+def main():
+    setup()  # Initialisation des GPIO
+    try:
+        while True:  # Boucle infinie pour maintenir le programme actif
+            time.sleep(1)  # Réduction de l'utilisation du CPU
+    except KeyboardInterrupt:  # Gestion de l'interruption par Ctrl+C
+        print("Programme arrêté")
+    finally:
+        destroy()  # Nettoyage des GPIO
+
+# Point d'entrée du programme
+if __name__ == '__main__':
+    main()
