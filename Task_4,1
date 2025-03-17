@@ -14,9 +14,9 @@ def setup():
     p = GPIO.PWM(led, 1000) #crée une instance PWM avec une fréquence initiale de 1000 Hz
     p.start(i)  #démarre le PWM avec le rapport cyclique initial
 
-def my_callback():
-    if GPIO.input(bouton) == GPIO.LOW:  #si le bouton est pressé
-        i =i+ 10 * sens #augmente ou diminue le rapport cyclique de 10%
+def presse(btn):
+    if GPIO.input(btn) == GPIO.LOW:  #si le bouton est pressé
+        i =i + 10 * sens #augmente ou diminue le rapport cyclique de 10%
         if i > 100:  #si le rapport cyclique dépasse 100%
             sens = -1  #change le sens de variation
         elif i < 0:  #si le rapport cyclique est inférieur à 0%
@@ -24,9 +24,10 @@ def my_callback():
         p.ChangeDutyCycle(i) #met à jour le rapport cyclique du PWM
 
 def main():
-    GPIO.add_event_detect(bouton, GPIO.FALLING, callback=bouton_callback, bouncetime=300) #configure une interruption sur le flanc descendant
-        while True:  #boucle toujours vraie
-            time.sleep(0.1)
+    GPIO.add_event_detect(bouton, GPIO.FALLING, callback=presse, bouncetime=300) #configure une interruption sur le flanc descendant
+        while True:  #boucle  infinie
+            time.sleep(0.1) #délai
+        p.stop() #stop le pwm
 
 
 
@@ -38,7 +39,6 @@ def destroy():
     #Turn Off LED
     #GPIO.output(ledPin, GPIO.LOW)
     #Release resource
-    p.stop()
     GPIO.cleanup()
 
 #If run this script directly, do:
