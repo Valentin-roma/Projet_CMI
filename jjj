@@ -1,0 +1,56 @@
+import RPi.GPIO as GPIO
+import time
+
+led = [21, 16, 12, 25, 24, 23, 18, 7]  # Numéro de port GPIO
+button = 20  # Numéro de port pour le bouton
+
+# Initialiser une variable pour vérifier si les leds fonctionnent déjà (elles sont déjà allumées)
+etat_led = False
+
+def destroy():
+    """Nettoyer les GPIO pour éviter les conflits."""
+    GPIO.cleanup()
+
+def setup():
+    """Configuration initiale des ports GPIO."""
+    GPIO.setmode(GPIO.BCM)  # Utilise la numérotation BCM
+    GPIO.setup(button, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)  # Initialise le bouton en bas comme 0
+
+    # Configuration des leds en tant que sortie
+    for i in range(len(led)):
+        GPIO.setup(led[i], GPIO.OUT)
+        GPIO.output(led[i], GPIO.LOW)  # Toutes les leds sont éteintes au démarrage
+
+def led_blink(channel):
+    """Fonction pour faire clignoter les leds lorsque le bouton est pressé."""
+    global etat_led
+
+    if etat_led:
+        # Si les leds sont déjà allumées, les éteindre
+        for i in range(len(led)):
+            GPIO.output(led[i], GPIO.LOW)
+        etat_led = False
+    else:
+        # Sinon, les allumer avec un clignotement
+        for i in range(len(led)):
+            GPIO.output(led[i], GPIO.HIGH)
+            time.sleep(0.5)  # Attendre une seconde
+            GPIO.output(led[i], GPIO.LOW)  # Éteindre la led
+            time.sleep(0.1)  # Pause rapide entre les clignotements
+        etat_led = True
+
+def main():
+    """Programme principal."""
+    GPIO.add_event_detect(button, GPIO.RISING, callback=led_blink, bouncetime=300)
+    while True:
+        time.sleep(1)  # Boucle d'attente pour que le programme continue de tourner
+
+if __name__ == "__main__":
+    setup()
+    try:
+        main()
+    except KeyboardInterrupt:
+        destroy()
+    finally:
+        print("Nettoyage des GPIO")
+        destroy()
