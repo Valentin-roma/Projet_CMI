@@ -9,13 +9,13 @@ def setup():
 
    
 def main():
-    GPIO.output(buzzer,GPIO.LOW)
+    GPIO.output(buzzer,GPIO.LOW) #definit le buzzer en LOW
     while True: #définit une condition toujours vraie
-            GPIO.output(buzzer,GPIO.HIGH)# Allume la LED
-            time.sleep(0.1)  # Attendre h1 seconde
-            GPIO.output(buzzer,GPIO.LOW)# Éteint la LE 
-            time.sleep(0.1)
-    time.sleep(0.5)
+            GPIO.output(buzzer,GPIO.HIGH) #allume le buzzer
+            time.sleep(0.1)  #attendre 0.1 seconde
+            GPIO.output(buzzer,GPIO.LOW) #éteint le buzzer 
+            time.sleep(0.1) #attend 0.1 seconde
+    time.sleep(0.5) #attend 0.5 seconde
 
 def destroy():
     #Turn Off LED
