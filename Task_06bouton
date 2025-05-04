@@ -15,7 +15,7 @@ def setup():
 def verification(x):
     global etat_led
     if GPIO.input(x) == GPIO.LOW:  # Si le bouton est pressé (LOW en mode pull-up)
-        etat_led = not etat_led# Inverse l'état des leds selon l'appui du bouton
+        etat_led = not etat_led # Inverse l'état des leds selon l'appui du bouton
 
 def main():
     GPIO.add_event_detect(bouton,GPIO.BOTH,callback=verification) # Attend l'événement de l'appui du bouton pour appeler la fonction verification au dessus
