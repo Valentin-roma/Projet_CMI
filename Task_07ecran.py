@@ -6,16 +6,16 @@ from kivy.uix.label import Label
 from kivy.clock import Clock
 from kivy.uix.boxlayout import BoxLayout
 
-CLK = 12 #Broche pour le signal de l'horloge
-DT = 11 #Broche pour le signal de données
-SW =13 #Broche pour le bouton poussoir
+CLK = 12    #Broche pour le signal de l'horloge
+DT = 11    #Broche pour le signal de données
+SW =13    #Broche pour le bouton poussoir
 
 
 def setup():
-    GPIO.setmode(GPIO.BOARD) #Utilise la numérotation physique des broches
-    GPIO.setup(CLK, GPIO.IN, pull_up_down=GPIO.PUD_UP) #Entrée avec résistance pull-up
-    GPIO.setup(DT, GPIO.IN, pull_up_down=GPIO.PUD_UP) #Entrée avec résistance pull-up
-    GPIO.setup(SW, GPIO.IN, pull_up_down=GPIO.PUD_UP) #Entrée avec résistance pull-up
+    GPIO.setmode(GPIO.BOARD)    #Utilise la numérotation physique des broches
+    GPIO.setup(CLK, GPIO.IN, pull_up_down=GPIO.PUD_UP)    #Entrée avec résistance pull-up
+    GPIO.setup(DT, GPIO.IN, pull_up_down=GPIO.PUD_UP)    #Entrée avec résistance pull-up
+    GPIO.setup(SW, GPIO.IN, pull_up_down=GPIO.PUD_UP)    #Entrée avec résistance pull-up
     compteur = 0
     last_clk_state = GPIO.input(CLK)
 
