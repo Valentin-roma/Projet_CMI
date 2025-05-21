@@ -1,3 +1,44 @@
+function exportData() {
+    const dataStr = JSON.stringify(machines);
+    const blob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "machines.json";
+    a.click();
+}
+
+function importData() {
+    const fileInput = document.getElementById('import-file');
+    const file = fileInput.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        try {
+            const importedData = JSON.parse(event.target.result);
+            if (Array.isArray(importedData)) {
+                machines = importedData;
+                saveMachines();
+                showAlert("Données importées avec succès", "success");
+                updateInventory();
+            } else {
+                showAlert("Format de fichier invalide", "danger");
+            }
+        } catch (e) {
+            showAlert("Erreur lors de l'importation", "danger");
+        }
+    };
+    reader.readAsText(file);
+}
+
+
+
+
+
+
+
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
