@@ -1,4 +1,4 @@
-<!-- Ajoutez ceci dans la vue liste des machines (remplacez l'ancien tableau) -->
+
 <table class="table table-striped">
     <thead>
         <tr>
