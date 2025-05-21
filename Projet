@@ -27,14 +27,6 @@
             max-width: 200px;
             height: auto;
         }
-        @media (max-width: 768px) {
-            .navbar-nav {
-                margin-top: 10px;
-            }
-            #reader {
-                min-height: 250px;
-            }
-        }
         .hidden {
             display: none;
         }
@@ -61,6 +53,9 @@
                     <li class="nav-item">
                         <a class="nav-link" href="#" onclick="showView('scan')">Scanner</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showView('cvi')">CVI</a>
+                    </li>
                 </ul>
             </div>
         </div>
@@ -71,17 +66,11 @@
 
         <!-- Vue Accueil -->
         <div id="home-view" class="view">
-            <h2>Bienvenue dans le gestionnaire de machines</h2>
-            <p>Cette application vous permet de :</p>
-            <ul>
-                <li>Ajouter des machines avec génération de QR code</li>
-                <li>Scanner les QR codes pour retrouver une machine</li>
-                <li>Modifier l'état des machines</li>
-                <li>Filtrer et rechercher les machines</li>
-            </ul>
+            <h2>Gestionnaire de machines</h2>
             <div class="d-grid gap-2">
                 <button class="btn btn-primary" onclick="showView('add-machine')">Ajouter une machine</button>
-                <button class="btn btn-secondary" onclick="showView('list-machines')">Voir toutes les machines</button>
+                <button class="btn btn-secondary" onclick="showView('list-machines')">Voir l'inventaire</button>
+                <button class="btn btn-info" onclick="showView('scan')">Scanner un produit</button>
             </div>
         </div>
 
@@ -90,140 +79,110 @@
             <h2>Ajouter une machine</h2>
             <form id="add-machine-form">
                 <div class="mb-3">
-                    <label for="serial_number" class="form-label">Numéro de série</label>
-                    <input type="text" class="form-control" id="serial_number" required>
+                    <label for="marque" class="form-label">Marque*</label>
+                    <input type="text" class="form-control" id="marque" required>
                 </div>
                 <div class="mb-3">
-                    <label for="model" class="form-label">Modèle</label>
+                    <label for="model" class="form-label">Modèle*</label>
                     <input type="text" class="form-control" id="model" required>
                 </div>
                 <div class="mb-3">
-                    <label for="description" class="form-label">Description</label>
-                    <textarea class="form-control" id="description" rows="3"></textarea>
+                    <label for="quantite" class="form-label">Quantité*</label>
+                    <input type="number" class="form-control" id="quantite" min="1" value="1" required>
                 </div>
                 <div class="mb-3">
-                    <label for="status" class="form-label">État</label>
-                    <select class="form-select" id="status" required>
-                        <option value="en stock">en stock</option>
-                        <option value="reconditionné">reconditionné</option>
-                        <option value="en livraison">en livraison</option>
-                        <option value="livré">livré</option>
-                        <option value="en réparation">en réparation</option>
-                        <option value="hors service">hors service</option>
+                    <label for="etatcvi" class="form-label">CVI disponible</label>
+                    <select class="form-select" id="etatcvi">
+                        <option value="non">Non</option>
+                        <option value="oui">Oui</option>
                     </select>
                 </div>
-                <button type="submit" class="btn btn-primary">Ajouter</button>
+                <div class="mb-3" id="date-cvi-container" style="display:none;">
+                    <label for="date-fin-cvi" class="form-label">Date de fin CVI*</label>
+                    <input type="date" class="form-control" id="date-fin-cvi">
+                </div>
+                <button type="submit" class="btn btn-primary">Enregistrer</button>
+                <button type="button" class="btn btn-secondary" onclick="showView('home')">Annuler</button>
             </form>
         </div>
 
         <!-- Vue Liste Machines -->
         <div id="list-machines-view" class="view hidden">
-            <h2>Liste des Machines</h2>
-            
-            <div class="row mb-4">
-                <div class="col-md-6">
-                    <div class="input-group">
-                        <select class="form-select" id="status-filter" onchange="filterMachines()">
-                            <option value="all">Tous les états</option>
-                            <option value="en stock">en stock</option>
-                            <option value="reconditionné">reconditionné</option>
-                            <option value="en livraison">en livraison</option>
-                            <option value="livré">livré</option>
-                            <option value="en réparation">en réparation</option>
-                            <option value="hors service">hors service</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="input-group">
-                        <input type="text" class="form-control" id="search-query" placeholder="Rechercher...">
-                        <button class="btn btn-outline-secondary" type="button" onclick="filterMachines()">Rechercher</button>
-                    </div>
-                </div>
-            </div>
-            
+            <h2>Inventaire des Machines</h2>
             <div class="table-responsive">
                 <table class="table table-striped">
                     <thead>
                         <tr>
-                            <th>Numéro de série</th>
+                            <th>Marque</th>
                             <th>Modèle</th>
-                            <th>État</th>
+                            <th>Quantité</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody id="machines-table-body">
-                        <!-- Les machines seront ajoutées ici par JavaScript -->
+                        <!-- Rempli dynamiquement -->
                     </tbody>
                 </table>
             </div>
-        </div>
-
-        <!-- Vue Machine -->
-        <div id="machine-view" class="view hidden">
-            <div class="row">
-                <div class="col-md-6">
-                    <h2 id="machine-title">Machine</h2>
-                    <div class="card">
-                        <div class="card-body">
-                            <p><strong>Numéro de série:</strong> <span id="view-serial-number"></span></p>
-                            <p><strong>Modèle:</strong> <span id="view-model"></span></p>
-                            <p><strong>Description:</strong> <span id="view-description"></span></p>
-                            
-                            <div class="mb-3">
-                                <label for="update-status" class="form-label"><strong>État:</strong></label>
-                                <div class="input-group">
-                                    <select class="form-select" id="update-status">
-                                        <option value="en stock">en stock</option>
-                                        <option value="reconditionné">reconditionné</option>
-                                        <option value="en livraison">en livraison</option>
-                                        <option value="livré">livré</option>
-                                        <option value="en réparation">en réparation</option>
-                                        <option value="hors service">hors service</option>
-                                    </select>
-                                    <button class="btn btn-primary" type="button" onclick="updateMachineStatus()">Mettre à jour</button>
-                                </div>
-                            </div>
-                            
-                            <button class="btn btn-secondary" onclick="showView('list-machines')">Retour à la liste</button>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6 text-center">
-                    <h3>QR Code</h3>
-                    <div id="qr-code-container"></div>
-                    <div class="mt-3">
-                        <button class="btn btn-outline-primary" onclick="downloadQRCode()">Télécharger QR Code</button>
-                    </div>
-                </div>
-            </div>
+            <button class="btn btn-secondary" onclick="showView('home')">Retour</button>
         </div>
 
         <!-- Vue Scan -->
         <div id="scan-view" class="view hidden">
-            <h2>Scanner un QR Code</h2>
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-body">
-                            <div id="reader"></div>
-                            <div class="text-center mt-3">
-                                <button id="start-scan" class="btn btn-primary">Démarrer le scan</button>
-                                <button id="stop-scan" class="btn btn-danger" disabled>Arrêter le scan</button>
-                            </div>
-                        </div>
+            <h2>Scanner un produit</h2>
+            <div class="card">
+                <div class="card-body">
+                    <div id="reader"></div>
+                    <div class="text-center mt-3">
+                        <button id="start-scan" class="btn btn-primary">Démarrer le scan</button>
+                        <button id="stop-scan" class="btn btn-danger" disabled>Arrêter</button>
                     </div>
                 </div>
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-body">
-                            <h5 class="card-title">Ou entrer manuellement</h5>
-                            <div class="input-group">
-                                <input type="text" class="form-control" id="manual-serial-number" placeholder="Numéro de série">
-                                <button class="btn btn-primary" type="button" onclick="findMachineBySerial()">Rechercher</button>
-                            </div>
-                        </div>
+            </div>
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h5>Recherche manuelle</h5>
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="manual-search" placeholder="Marque ou modèle">
+                        <button class="btn btn-primary" type="button" onclick="manualSearch()">Rechercher</button>
                     </div>
+                </div>
+            </div>
+            <button class="btn btn-secondary mt-3" onclick="showView('home')">Retour</button>
+        </div>
+
+        <!-- Vue CVI -->
+        <div id="cvi-view" class="view hidden">
+            <h2>Gestion des CVI</h2>
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Marque</th>
+                            <th>Modèle</th>
+                            <th>Date fin CVI</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cvi-table-body">
+                        <!-- Rempli dynamiquement -->
+                    </tbody>
+                </table>
+            </div>
+            <button class="btn btn-secondary" onclick="showView('home')">Retour</button>
+        </div>
+    </div>
+
+    <!-- Modal Produit -->
+    <div class="modal fade" id="productModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Fiche Produit</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="product-modal-body">
+                    <!-- Rempli dynamiquement -->
                 </div>
             </div>
         </div>
@@ -231,283 +190,283 @@
 
     <script>
         // Variables globales
-        let currentMachine = null;
+        let machines = JSON.parse(localStorage.getItem('machines')) || [];
         let html5QrcodeScanner = null;
-        
-        // Statuts disponibles
-        const statusChoices = [
-            'en stock',
-            'reconditionné',
-            'en livraison',
-            'livré',
-            'en réparation',
-            'hors service'
-        ];
-        
-        // Au chargement de la page
+        let currentScanIndex = null;
+
+        // Initialisation
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialiser les événements
+            // Événements
             document.getElementById('add-machine-form').addEventListener('submit', addMachine);
-            document.getElementById('search-query').addEventListener('keyup', function(e) {
-                if (e.key === 'Enter') filterMachines();
-            });
-            document.getElementById('manual-serial-number').addEventListener('keyup', function(e) {
-                if (e.key === 'Enter') findMachineBySerial();
-            });
+            document.getElementById('etatcvi').addEventListener('change', toggleCVIDate);
+            document.getElementById('start-scan').addEventListener('click', startScanner);
+            document.getElementById('stop-scan').addEventListener('click', stopScanner);
             
-            // Démarrer sur la vue d'accueil
             showView('home');
-            
-            // Si des machines existent en localStorage, les charger
-            if (!localStorage.getItem('machines')) {
-                localStorage.setItem('machines', JSON.stringify([]));
-            }
-            
-            // Configurer le scanner
-            setupScanner();
         });
-        
+
         // Gestion des vues
         function showView(viewName) {
-            // Cacher toutes les vues
             document.querySelectorAll('.view').forEach(view => {
                 view.classList.add('hidden');
             });
-            
-            // Afficher la vue demandée
             document.getElementById(`${viewName}-view`).classList.remove('hidden');
             
-            // Initialiser la vue si nécessaire
-            if (viewName === 'list-machines') {
-                filterMachines();
-            }
+            if (viewName === 'list-machines') updateInventory();
+            if (viewName === 'cvi') updateCVIList();
+            if (viewName === 'scan') stopScanner();
         }
-        
-        // Ajouter une machine
+
+        // Ajout machine
         function addMachine(e) {
             e.preventDefault();
             
-            const serialNumber = document.getElementById('serial_number').value;
-            const model = document.getElementById('model').value;
-            const description = document.getElementById('description').value;
-            const status = document.getElementById('status').value;
-            
-            // Vérifier si le numéro de série existe déjà
-            const machines = getMachines();
-            if (machines.some(m => m.serialNumber === serialNumber)) {
-                showAlert('Ce numéro de série existe déjà', 'danger');
+            const marque = document.getElementById('marque').value.trim();
+            const model = document.getElementById('model').value.trim();
+            const quantite = parseInt(document.getElementById('quantite').value);
+            const etatcvi = document.getElementById('etatcvi').value;
+            const dateFinCVI = etatcvi === 'oui' ? document.getElementById('date-fin-cvi').value : null;
+
+            if (!marque || !model || isNaN(quantite) || (etatcvi === 'oui' && !dateFinCVI)) {
+                showAlert('Veuillez remplir tous les champs obligatoires', 'danger');
                 return;
             }
-            
-            // Créer la machine
-            const machine = {
-                serialNumber,
-                model,
-                description,
-                status,
-                createdAt: new Date().toISOString()
-            };
-            
-            // Ajouter à la liste
-            machines.push(machine);
-            saveMachines(machines);
-            
-            // Réinitialiser le formulaire
+
+            // Vérifier si le modèle existe déjà
+            const existingIndex = machines.findIndex(m => 
+                m.marque.toLowerCase() === marque.toLowerCase() && 
+                m.model.toLowerCase() === model.toLowerCase()
+            );
+
+            if (existingIndex !== -1) {
+                // Mise à jour de la quantité
+                machines[existingIndex].quantite += quantite;
+                // Mise à jour CVI si nécessaire
+                if (etatcvi === 'oui') {
+                    machines[existingIndex].etatcvi = 'oui';
+                    machines[existingIndex].dateFinCVI = dateFinCVI;
+                }
+                showAlert('Quantité mise à jour pour ce modèle', 'success');
+            } else {
+                // Nouvelle machine
+                machines.push({
+                    marque,
+                    model,
+                    quantite,
+                    etatcvi,
+                    dateFinCVI,
+                    createdAt: new Date().toISOString()
+                });
+                showAlert('Nouveau modèle ajouté', 'success');
+            }
+
+            saveMachines();
             document.getElementById('add-machine-form').reset();
-            
-            // Afficher un message de succès
-            showAlert('Machine ajoutée avec succès', 'success');
-            
-            // Afficher la machine
-            showMachineView(machine);
+            showView('list-machines');
         }
-        
-        // Filtrer les machines
-        function filterMachines() {
-            const statusFilter = document.getElementById('status-filter').value;
-            const searchQuery = document.getElementById('search-query').value.toLowerCase();
-            
-            const machines = getMachines();
-            let filteredMachines = machines;
-            
-            // Filtrer par statut
-            if (statusFilter !== 'all') {
-                filteredMachines = filteredMachines.filter(m => m.status === statusFilter);
-            }
-            
-            // Filtrer par recherche
-            if (searchQuery) {
-                filteredMachines = filteredMachines.filter(m => 
-                    m.serialNumber.toLowerCase().includes(searchQuery) || 
-                    m.model.toLowerCase().includes(searchQuery)
-                );
-            }
-            
-            // Trier par date de création (les plus récentes en premier)
-            filteredMachines.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-            
-            // Afficher les résultats
-            displayMachines(filteredMachines);
-        }
-        
-        // Afficher la liste des machines
-        function displayMachines(machines) {
+
+        // Mise à jour inventaire
+        function updateInventory() {
             const tbody = document.getElementById('machines-table-body');
             tbody.innerHTML = '';
-            
+
             if (machines.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" class="text-center">Aucune machine trouvée</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center">Aucune machine enregistrée</td></tr>';
                 return;
             }
-            
-            machines.forEach(machine => {
+
+            machines.forEach((machine, index) => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td>${machine.serialNumber}</td>
+                    <td>${machine.marque}</td>
                     <td>${machine.model}</td>
-                    <td>${machine.status}</td>
+                    <td>${machine.quantite}</td>
                     <td>
-                        <button class="btn btn-sm btn-primary" onclick="showMachineView(${JSON.stringify(machine).replace(/"/g, '&quot;')})">Voir</button>
+                        <button class="btn btn-sm btn-primary" onclick="showProductModal(${index})">
+                            Modifier
+                        </button>
                     </td>
                 `;
                 tbody.appendChild(tr);
             });
         }
-        
-        // Afficher la vue d'une machine
-        function showMachineView(machine) {
-            currentMachine = machine;
+
+        // Mise à jour liste CVI
+        function updateCVIList() {
+            const tbody = document.getElementById('cvi-table-body');
+            tbody.innerHTML = '';
+
+            const machinesCVI = machines.filter(m => m.etatcvi === 'oui');
             
-            // Mettre à jour les informations
-            document.getElementById('machine-title').textContent = `Machine ${machine.serialNumber}`;
-            document.getElementById('view-serial-number').textContent = machine.serialNumber;
-            document.getElementById('view-model').textContent = machine.model;
-            document.getElementById('view-description').textContent = machine.description || 'N/A';
-            document.getElementById('update-status').value = machine.status;
-            
-            // Générer le QR code
-            generateQRCode(machine.serialNumber);
-            
-            // Afficher la vue
-            showView('machine');
+            if (machinesCVI.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center">Aucune machine avec CVI</td></tr>';
+                return;
+            }
+
+            machinesCVI.forEach((machine, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${machine.marque}</td>
+                    <td>${machine.model}</td>
+                    <td>${machine.dateFinCVI || 'Non spécifiée'}</td>
+                    <td>
+                        <button class="btn btn-sm btn-primary" onclick="showProductModal(${index})">
+                            Modifier
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteMachine(${index})">
+                            Supprimer
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
         }
-        
-        // Mettre à jour le statut d'une machine
-        function updateMachineStatus() {
-            const newStatus = document.getElementById('update-status').value;
+
+        // Modal produit
+        function showProductModal(index) {
+            const machine = machines[index];
+            currentScanIndex = index;
             
-            const machines = getMachines();
-            const machineIndex = machines.findIndex(m => m.serialNumber === currentMachine.serialNumber);
-            
-            if (machineIndex !== -1) {
-                machines[machineIndex].status = newStatus;
-                saveMachines(machines);
-                currentMachine.status = newStatus;
-                showAlert('Statut mis à jour avec succès', 'success');
+            const modalBody = document.getElementById('product-modal-body');
+            modalBody.innerHTML = `
+                <div class="mb-3">
+                    <label class="form-label">Marque</label>
+                    <input type="text" class="form-control" value="${machine.marque}" readonly>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Modèle</label>
+                    <input type="text" class="form-control" value="${machine.model}" readonly>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Quantité</label>
+                    <input type="number" class="form-control" id="modal-quantity" value="${machine.quantite}" min="1">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">CVI</label>
+                    <select class="form-select" id="modal-cvi">
+                        <option value="non" ${machine.etatcvi === 'non' ? 'selected' : ''}>Non</option>
+                        <option value="oui" ${machine.etatcvi === 'oui' ? 'selected' : ''}>Oui</option>
+                    </select>
+                </div>
+                <div class="mb-3" id="modal-cvi-date-container" style="${machine.etatcvi === 'oui' ? '' : 'display:none;'}">
+                    <label class="form-label">Date fin CVI</label>
+                    <input type="date" class="form-control" id="modal-cvi-date" value="${machine.dateFinCVI || ''}">
+                </div>
+                <div class="d-flex justify-content-between">
+                    <button class="btn btn-primary" onclick="updateProduct()">Enregistrer</button>
+                    <button class="btn btn-danger" onclick="deleteMachine(${index})">Supprimer</button>
+                </div>
+            `;
+
+            document.getElementById('modal-cvi').addEventListener('change', function() {
+                document.getElementById('modal-cvi-date-container').style.display = 
+                    this.value === 'oui' ? 'block' : 'none';
+            });
+
+            new bootstrap.Modal(document.getElementById('productModal')).show();
+        }
+
+        // Mise à jour produit
+        function updateProduct() {
+            const index = currentScanIndex;
+            const newQuantity = parseInt(document.getElementById('modal-quantity').value);
+            const etatcvi = document.getElementById('modal-cvi').value;
+            const dateFinCVI = etatcvi === 'oui' ? document.getElementById('modal-cvi-date').value : null;
+
+            if (isNaN(newQuantity) || newQuantity < 1) {
+                showAlert('Quantité invalide', 'danger');
+                return;
+            }
+
+            machines[index].quantite = newQuantity;
+            machines[index].etatcvi = etatcvi;
+            machines[index].dateFinCVI = dateFinCVI;
+
+            saveMachines();
+            updateInventory();
+            updateCVIList();
+            showAlert('Produit mis à jour', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('productModal')).hide();
+        }
+
+        // Suppression machine
+        function deleteMachine(index) {
+            if (confirm('Êtes-vous sûr de vouloir supprimer cette machine ?')) {
+                machines.splice(index, 1);
+                saveMachines();
+                updateInventory();
+                updateCVIList();
+                showAlert('Machine supprimée', 'success');
+                bootstrap.Modal.getInstance(document.getElementById('productModal')).hide();
             }
         }
-        
-        // Générer un QR code
-        function generateQRCode(serialNumber) {
-            const qr = qrcode(0, 'L');
-            qr.addData(serialNumber);
-            qr.make();
-            
-            const container = document.getElementById('qr-code-container');
-            container.innerHTML = qr.createImgTag(6);
-            
-            // Stocker le QR code dans la machine courante pour le téléchargement
-            const img = container.querySelector('img');
-            img.classList.add('img-fluid', 'qr-code-img');
-            currentMachine.qrCodeImg = img.outerHTML;
+
+        // Scanner
+        function startScanner() {
+            document.getElementById('start-scan').disabled = true;
+            document.getElementById('stop-scan').disabled = false;
+
+            html5QrcodeScanner = new Html5QrcodeScanner(
+                "reader", 
+                { fps: 10, qrbox: 250 }, 
+                false
+            );
+
+            html5QrcodeScanner.render(onScanSuccess);
         }
-        
-        // Télécharger le QR code
-        function downloadQRCode() {
-            if (!currentMachine || !currentMachine.qrCodeImg) return;
+
+        function stopScanner() {
+            document.getElementById('start-scan').disabled = false;
+            document.getElementById('stop-scan').disabled = true;
             
-            const blob = new Blob([currentMachine.qrCodeImg], { type: 'image/svg+xml' });
-            const url = URL.createObjectURL(blob);
-            
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `qr-code-${currentMachine.serialNumber}.svg`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
-        
-        // Scanner de QR code
-        function setupScanner() {
-            document.getElementById('start-scan').addEventListener('click', function() {
-                this.disabled = true;
-                document.getElementById('stop-scan').disabled = false;
-                
-                html5QrcodeScanner = new Html5QrcodeScanner(
-                    "reader", 
-                    { fps: 10, qrbox: 250 }, 
-                    false);
-                
-                html5QrcodeScanner.render(onScanSuccess);
-            });
-            
-            document.getElementById('stop-scan').addEventListener('click', function() {
-                this.disabled = true;
-                document.getElementById('start-scan').disabled = false;
-                if (html5QrcodeScanner) {
-                    html5QrcodeScanner.clear().catch(error => {
-                        console.error("Failed to clear html5QrcodeScanner. ", error);
-                    });
-                }
-            });
-        }
-        
-        // Callback de scan réussi
-        function onScanSuccess(decodedText) {
-            // Arrêter le scanner
             if (html5QrcodeScanner) {
-                html5QrcodeScanner.clear();
-                document.getElementById('stop-scan').disabled = true;
-                document.getElementById('start-scan').disabled = false;
+                html5QrcodeScanner.clear().catch(error => {
+                    console.error("Erreur arrêt scanner:", error);
+                });
             }
-            
-            // Trouver la machine
-            findMachine(decodedText);
         }
-        
-        // Trouver une machine par son numéro de série
-        function findMachineBySerial() {
-            const serialNumber = document.getElementById('manual-serial-number').value;
-            if (!serialNumber) return;
+
+        function onScanSuccess(decodedText) {
+            stopScanner();
+            const foundIndex = machines.findIndex(m => 
+                m.marque.toLowerCase().includes(decodedText.toLowerCase()) || 
+                m.model.toLowerCase().includes(decodedText.toLowerCase())
+            );
             
-            findMachine(serialNumber);
-        }
-        
-        function findMachine(serialNumber) {
-            const machines = getMachines();
-            const machine = machines.find(m => m.serialNumber === serialNumber);
-            
-            if (machine) {
-                showMachineView(machine);
+            if (foundIndex !== -1) {
+                showProductModal(foundIndex);
             } else {
-                showAlert('Machine non trouvée', 'danger');
+                showAlert('Produit non trouvé', 'danger');
             }
         }
-        
-        // Helper: Obtenir toutes les machines
-        function getMachines() {
-            return JSON.parse(localStorage.getItem('machines')) || [];
+
+        function manualSearch() {
+            const query = document.getElementById('manual-search').value.trim().toLowerCase();
+            if (!query) return;
+
+            const foundIndex = machines.findIndex(m => 
+                m.marque.toLowerCase().includes(query) || 
+                m.model.toLowerCase().includes(query)
+            );
+
+            if (foundIndex !== -1) {
+                showProductModal(foundIndex);
+            } else {
+                showAlert('Aucun produit trouvé', 'danger');
+            }
         }
-        
-        // Helper: Sauvegarder les machines
-        function saveMachines(machines) {
+
+        // Helpers
+        function toggleCVIDate() {
+            document.getElementById('date-cvi-container').style.display = 
+                document.getElementById('etatcvi').value === 'oui' ? 'block' : 'none';
+        }
+
+        function saveMachines() {
             localStorage.setItem('machines', JSON.stringify(machines));
         }
-        
-        // Helper: Afficher une alerte
+
         function showAlert(message, type) {
-            const alertPlaceholder = document.getElementById('alert-placeholder');
             const alert = document.createElement('div');
             alert.className = `alert alert-${type} alert-dismissible fade show`;
             alert.innerHTML = `
@@ -515,9 +474,8 @@
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             `;
             
-            alertPlaceholder.appendChild(alert);
+            document.getElementById('alert-placeholder').appendChild(alert);
             
-            // Supprimer l'alerte après 5 secondes
             setTimeout(() => {
                 alert.remove();
             }, 5000);
