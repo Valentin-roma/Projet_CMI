@@ -1802,4 +1802,425 @@
                             numserie: unit.numserie,
                             position: machine.position,
                             dateFinCVI: formatDate(unit.dateFinCVI),
-                            statut: getCVIStatus(unit.dateFinCVI) === 'expired' ? 'Expiré'
+                            statut : (getCVIStatus(unit.dateFinCVI) === 'expiring' ? 'Bientôt expiré' : 'Valide'
+                        });
+                    }
+                });
+            });
+
+            if (cviData.length > 0) {
+                doc.addPage();
+                doc.setFontSize(18);
+                doc.text('Liste des CVI', 105, 15, { align: 'center' });
+                
+                const cviColumns = [
+                    { title: "Marque", dataKey: "marque" },
+                    { title: "Modèle", dataKey: "model" },
+                    { title: "N° Série", dataKey: "numserie" },
+                    { title: "Emplacement", dataKey: "position" },
+                    { title: "Date fin CVI", dataKey: "dateFinCVI" },
+                    { title: "Statut", dataKey: "statut" }
+                ];
+
+                doc.autoTable({
+                    columns: cviColumns,
+                    body: cviData,
+                    startY: 30,
+                    styles: { fontSize: 9 },
+                    headStyles: { fillColor: [41, 128, 185], textColor: 255 },
+                    alternateRowStyles: { fillColor: [240, 240, 240] },
+                    columnStyles: {
+                        statut: {
+                            cellWidth: 25,
+                            halign: 'center'
+                        }
+                    },
+                    didDrawCell: (data) => {
+                        if (data.column.dataKey === 'statut' && data.cell.raw === 'Expiré') {
+                            doc.setFillColor(255, 0, 0);
+                            doc.rect(data.cell.x, data.cell.y, data.cell.width, data.cell.height, 'F');
+                            doc.setTextColor(255, 255, 255);
+                        } else if (data.column.dataKey === 'statut' && data.cell.raw === 'Bientôt expiré') {
+                            doc.setFillColor(255, 255, 0);
+                            doc.rect(data.cell.x, data.cell.y, data.cell.width, data.cell.height, 'F');
+                            doc.setTextColor(0, 0, 0);
+                        }
+                    }
+                });
+            }
+
+            // Sauvegarder le PDF
+            doc.save(`machines_export_${formatDate(new Date(), 'file')}.pdf`);
+            
+            logActivity('Export PDF effectué');
+            showAlert('Export PDF réussi', 'success');
+        }
+
+        function importData() {
+            const fileInput = document.getElementById('import-file');
+            const file = fileInput.files[0];
+            const importType = document.getElementById('import-type').value;
+            const mergeData = document.getElementById('merge-data').checked;
+
+            if (!file) {
+                showAlert('Veuillez sélectionner un fichier', 'warning');
+                return;
+            }
+
+            showLoading('Import des données...');
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    let importedMachines = [];
+                    let importedActivity = [];
+
+                    if (importType === 'json') {
+                        const data = JSON.parse(event.target.result);
+                        importedMachines = data.machines || [];
+                        importedActivity = data.activityLog || [];
+                    } else if (importType === 'excel') {
+                        const data = new Uint8Array(event.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        
+                        // Lire la feuille Machines
+                        if (workbook.SheetNames.includes('Machines')) {
+                            const worksheet = workbook.Sheets['Machines'];
+                            importedMachines = XLSX.utils.sheet_to_json(worksheet);
+                            
+                            // Convertir les données Excel au bon format
+                            importedMachines = importedMachines.map(machine => ({
+                                marque: machine['Marque'],
+                                model: machine['Modèle'],
+                                categorie: machine['Catégorie'],
+                                quantite: machine['Quantité'],
+                                position: machine['Emplacement'],
+                                notes: machine['Notes'],
+                                unites: Array(machine['Quantité']).fill().map(() => ({
+                                    numserie: '',
+                                    etatcvi: 'non',
+                                    dateFinCVI: null
+                                })),
+                                createdAt: machine['Date création'] || new Date().toISOString(),
+                                updatedAt: machine['Dernière modification'] || new Date().toISOString()
+                            }));
+                        }
+                        
+                        // Lire la feuille CVI si elle existe
+                        if (workbook.SheetNames.includes('CVI')) {
+                            const worksheet = workbook.Sheets['CVI'];
+                            const cviData = XLSX.utils.sheet_to_json(worksheet);
+                            
+                            cviData.forEach(cvi => {
+                                const machineIndex = importedMachines.findIndex(m => 
+                                    m.marque === cvi['Marque'] && m.model === cvi['Modèle']);
+                                
+                                if (machineIndex !== -1) {
+                                    const unitIndex = importedMachines[machineIndex].unites.findIndex(u => 
+                                        u.numserie === cvi['Numéro de série']);
+                                    
+                                    if (unitIndex !== -1) {
+                                        importedMachines[machineIndex].unites[unitIndex] = {
+                                            numserie: cvi['Numéro de série'],
+                                            etatcvi: 'oui',
+                                            dateFinCVI: cvi['Date fin CVI']
+                                        };
+                                    }
+                                }
+                            });
+                        }
+                    }
+
+                    if (mergeData) {
+                        // Fusionner avec les données existantes
+                        importedMachines.forEach(importedMachine => {
+                            const existingIndex = machines.findIndex(m => 
+                                m.marque === importedMachine.marque && 
+                                m.model === importedMachine.model);
+                            
+                            if (existingIndex !== -1) {
+                                // Mise à jour de la machine existante
+                                machines[existingIndex] = {
+                                    ...machines[existingIndex],
+                                    ...importedMachine,
+                                    unites: importedMachine.unites || machines[existingIndex].unites
+                                };
+                            } else {
+                                // Ajout d'une nouvelle machine
+                                machines.push(importedMachine);
+                            }
+                        });
+
+                        // Fusionner les logs d'activité
+                        activityLog = [...importedActivity, ...activityLog].slice(0, 50);
+                    } else {
+                        // Remplacer complètement les données
+                        machines = importedMachines;
+                        activityLog = importedActivity;
+                    }
+
+                    saveMachines();
+                    logActivity('Import de données effectué');
+                    showAlert('Import réussi', 'success');
+                    showView('list-machines');
+                } catch (error) {
+                    console.error("Erreur lors de l'import:", error);
+                    showAlert("Erreur lors de l'import: " + error.message, "danger");
+                } finally {
+                    hideLoading();
+                    fileInput.value = '';
+                }
+            };
+
+            if (importType === 'json') {
+                reader.readAsText(file);
+            } else {
+                reader.readAsArrayBuffer(file);
+            }
+        }
+
+        function confirmResetData() {
+            const confirmBody = document.getElementById('confirm-modal-body');
+            confirmBody.innerHTML = `
+                <p>Êtes-vous sûr de vouloir réinitialiser toutes les données ?</p>
+                <p class="text-danger">Cette action supprimera définitivement toutes les machines et l'historique !</p>
+                <p><strong>Pensez à exporter vos données avant de continuer.</strong></p>
+            `;
+            
+            const confirmBtn = document.getElementById('confirm-action-btn');
+            confirmBtn.onclick = function() {
+                resetData();
+                bootstrap.Modal.getInstance(document.getElementById('confirmModal')).hide();
+            };
+            
+            const modal = new bootstrap.Modal(document.getElementById('confirmModal'));
+            modal.show();
+        }
+
+        function resetData() {
+            machines = [];
+            activityLog = [];
+            saveMachines();
+            logActivity('Réinitialisation des données');
+            showAlert('Toutes les données ont été réinitialisées', 'success');
+            showView('home');
+        }
+
+        // ==============================================
+        // STATISTIQUES
+        // ==============================================
+
+        function initCharts() {
+            // Détruire les anciens graphiques s'ils existent
+            if (charts.categoryChart) charts.categoryChart.destroy();
+            if (charts.cviStatusChart) charts.cviStatusChart.destroy();
+            if (charts.locationChart) charts.locationChart.destroy();
+
+            // Graphique par catégorie
+            const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+            const categoryData = getCategoryData();
+            charts.categoryChart = new Chart(categoryCtx, {
+                type: 'pie',
+                data: {
+                    labels: categoryData.labels,
+                    datasets: [{
+                        data: categoryData.values,
+                        backgroundColor: [
+                            '#3498db', '#2ecc71', '#f1c40f', '#e74c3c', '#9b59b6'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'right'
+                        },
+                        title: {
+                            display: true,
+                            text: 'Répartition par catégorie'
+                        }
+                    }
+                }
+            });
+
+            // Graphique statut CVI
+            const cviStatusCtx = document.getElementById('cviStatusChart').getContext('2d');
+            const cviStatusData = getCVIStatusData();
+            charts.cviStatusChart = new Chart(cviStatusCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Valides', 'Bientôt expirés', 'Expirés'],
+                    datasets: [{
+                        data: [cviStatusData.valid, cviStatusData.expiring, cviStatusData.expired],
+                        backgroundColor: [
+                            '#2ecc71', '#f39c12', '#e74c3c'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'right'
+                        },
+                        title: {
+                            display: true,
+                            text: 'Statut des CVI'
+                        }
+                    }
+                }
+            });
+
+            // Graphique par emplacement
+            const locationCtx = document.getElementById('locationChart').getContext('2d');
+            const locationData = getLocationData();
+            charts.locationChart = new Chart(locationCtx, {
+                type: 'bar',
+                data: {
+                    labels: locationData.labels,
+                    datasets: [{
+                        label: 'Nombre de machines',
+                        data: locationData.values,
+                        backgroundColor: '#3498db'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'Machines par emplacement'
+                        }
+                    }
+                }
+            });
+        }
+
+        function getCategoryData() {
+            const categories = {
+                'Ordinateur': 0,
+                'Serveur': 0,
+                'Imprimante': 0,
+                'Réseau': 0,
+                'Autre': 0
+            };
+
+            machines.forEach(machine => {
+                const categorie = machine.categorie || 'Autre';
+                categories[categorie] = (categories[categorie] || 0) + machine.quantite;
+            });
+
+            return {
+                labels: Object.keys(categories),
+                values: Object.values(categories)
+            };
+        }
+
+        function getCVIStatusData() {
+            let valid = 0;
+            let expiring = 0;
+            let expired = 0;
+
+            machines.forEach(machine => {
+                (machine.unites || []).forEach(unit => {
+                    if (unit.etatcvi === 'oui') {
+                        const status = getCVIStatus(unit.dateFinCVI);
+                        if (status === 'valid') valid++;
+                        if (status === 'expiring') expiring++;
+                        if (status === 'expired') expired++;
+                    }
+                });
+            });
+
+            return { valid, expiring, expired };
+        }
+
+        function getLocationData() {
+            const locations = {};
+
+            machines.forEach(machine => {
+                locations[machine.position] = (locations[machine.position] || 0) + machine.quantite;
+            });
+
+            // Trier par quantité décroissante et garder les 10 premiers
+            const sorted = Object.entries(locations)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 10);
+
+            return {
+                labels: sorted.map(item => item[0]),
+                values: sorted.map(item => item[1])
+            };
+        }
+
+        // ==============================================
+        // FONCTIONS UTILITAIRES
+        // ==============================================
+
+        function saveMachines() {
+            localStorage.setItem('machines', JSON.stringify(machines));
+            localStorage.setItem('activityLog', JSON.stringify(activityLog));
+        }
+
+        function showAlert(message, type) {
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type} alert-dismissible fade show`;
+            alert.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            document.getElementById('alert-placeholder').appendChild(alert);
+            
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
+        }
+
+        function showLoading(text = 'Chargement en cours...') {
+            document.getElementById('loading-text').textContent = text;
+            document.getElementById('loading-overlay').classList.remove('hidden');
+        }
+
+        function hideLoading() {
+            document.getElementById('loading-overlay').classList.add('hidden');
+        }
+
+        function formatDate(dateString, format = 'display') {
+            if (!dateString) return 'Non spécifié';
+            
+            const date = new Date(dateString);
+            
+            if (format === 'file') {
+                return date.toISOString().split('T')[0].replace(/-/g, '');
+            }
+            
+            return date.toLocaleDateString('fr-FR', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // Initialisation des tooltips Bootstrap
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    </script>
+</body>
+</html>
