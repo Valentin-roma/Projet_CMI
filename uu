@@ -1,4 +1,890 @@
-const matchesSearch = marque.includes(searchTerm) || model.includes(searchTerm) || position.includes(searchTerm);
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion des Machines</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/locale/fr.min.js"></script>
+
+    <style>
+        body {
+            padding-bottom: 50px;
+            background-color: #f8f9fa;
+        }
+        .navbar {
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .card {
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border: none;
+        }
+        .table-responsive {
+            margin-top: 20px;
+        }
+        #reader {
+            min-height: 300px;
+            border: 2px dashed #ccc;
+            margin-bottom: 15px;
+            background: #f8f9fa;
+        }
+        .qr-code-img {
+            max-width: 100px;
+            height: auto;
+            cursor: pointer;
+        }
+        .qr-modal-img {
+            max-width: 100%;
+            height: auto;
+        }
+        .hidden {
+            display: none;
+        }
+        .alert {
+            transition: opacity 0.5s ease-out;
+        }
+        .view {
+            animation: fadeIn 0.3s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .cvi-expired {
+            background-color: #ffdddd !important;
+        }
+        .cvi-soon {
+            background-color: #fff3cd !important;
+        }
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 1.5rem;
+        }
+        .unit-card {
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 10px;
+            position: relative;
+        }
+        .unit-card .badge {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+        }
+        .search-container {
+            margin-bottom: 20px;
+        }
+        .stats-card {
+            text-align: center;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="#" onclick="showView('home')">
+                <i class="bi bi-pc-display-horizontal me-2"></i>
+                Gestion Machines
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showView('add-machine')"><i class="bi bi-plus-circle"></i> Ajouter</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showView('list-machines')"><i class="bi bi-list-ul"></i> Liste</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showView('scan')"><i class="bi bi-upc-scan"></i> Scanner</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showView('cvi')"><i class="bi bi-calendar-check"></i> CVI</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showView('export')"><i class="bi bi-cloud-arrow-down"></i> Sauvegarde</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showView('stats')"><i class="bi bi-graph-up"></i> Stats</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div id="alert-placeholder"></div>
+
+        <!-- Vue Accueil -->
+        <div id="home-view" class="view">
+            <h2><i class="bi bi-house-door"></i> Tableau de bord</h2>
+            <div class="row mt-4">
+                <div class="col-md-4">
+                    <div class="card bg-primary text-white stats-card">
+                        <h3><i class="bi bi-pc-display-horizontal"></i></h3>
+                        <h4 id="total-machines">0</h4>
+                        <p>Machines en stock</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card bg-warning text-dark stats-card">
+                        <h3><i class="bi bi-calendar-exclamation"></i></h3>
+                        <h4 id="expiring-cvi">0</h4>
+                        <p>CVI bientôt expirés</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card bg-danger text-white stats-card">
+                        <h3><i class="bi bi-calendar-x"></i></h3>
+                        <h4 id="expired-cvi">0</h4>
+                        <p>CVI expirés</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="d-grid gap-2 mt-4">
+                <button class="btn btn-primary" onclick="showView('add-machine')">
+                    <i class="bi bi-plus-circle"></i> Ajouter une machine
+                </button>
+                <button class="btn btn-secondary" onclick="showView('list-machines')">
+                    <i class="bi bi-list-ul"></i> Voir l'inventaire
+                </button>
+                <button class="btn btn-secondary" onclick="showView('scan')">
+                    <i class="bi bi-upc-scan"></i> Scanner un produit
+                </button>
+            </div>
+            
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5><i class="bi bi-clock-history"></i> Dernières modifications</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Action</th>
+                                    <th>Machine</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recent-activity">
+                                <!-- Rempli dynamiquement -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vue Ajout Machine -->
+        <div id="add-machine-view" class="view hidden">
+            <h2><i class="bi bi-plus-circle"></i> Ajouter une machine</h2>
+            <div class="card">
+                <div class="card-body">
+                    <form id="add-machine-form">
+                        <div class="mb-3">
+                            <label for="marque" class="form-label">Marque *</label>
+                            <input type="text" class="form-control" id="marque" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="model" class="form-label">Modèle *</label>
+                            <input type="text" class="form-control" id="model" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="quantite" class="form-label">Quantité *</label>
+                            <input type="number" class="form-control" id="quantite" min="1" value="1" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="position" class="form-label">Emplacement *</label>
+                            <input type="text" class="form-control" id="position" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="categorie" class="form-label">Catégorie</label>
+                            <select class="form-select" id="categorie">
+                                <option value="Ordinateur">Ordinateur</option>
+                                <option value="Serveur">Serveur</option>
+                                <option value="Imprimante">Imprimante</option>
+                                <option value="Réseau">Équipement réseau</option>
+                                <option value="Autre">Autre</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">Notes</label>
+                            <textarea class="form-control" id="notes" rows="2"></textarea>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> Enregistrer
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="showView('home')">
+                                <i class="bi bi-arrow-left"></i> Annuler
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vue Liste Machines -->
+        <div id="list-machines-view" class="view hidden">
+            <h2><i class="bi bi-list-ul"></i> Inventaire des Machines</h2>
+            
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="inventory-search" placeholder="Rechercher...">
+                                <button class="btn btn-outline-secondary" type="button" onclick="filterMachines()">
+                                    <i class="bi bi-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <select class="form-select" id="inventory-filter" onchange="filterMachines()">
+                                <option value="all">Toutes les catégories</option>
+                                <option value="Ordinateur">Ordinateurs</option>
+                                <option value="Serveur">Serveurs</option>
+                                <option value="Imprimante">Imprimantes</option>
+                                <option value="Réseau">Équipements réseau</option>
+                                <option value="Autre">Autre</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Marque</th>
+                            <th>Modèle</th>
+                            <th>Catégorie</th>
+                            <th>Quantité</th>
+                            <th>Emplacement</th>
+                            <th>Actions</th>
+                            <th>QR Code</th>
+                        </tr>
+                    </thead>
+                    <tbody id="machines-table-body">
+                        <!-- Rempli dynamiquement -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="d-flex justify-content-between mt-3">
+                <button class="btn btn-secondary" onclick="showView('home')">
+                    <i class="bi bi-arrow-left"></i> Retour
+                </button>
+                <div class="btn-group">
+                    <button class="btn btn-outline-secondary" onclick="exportInventory('pdf')">
+                        <i class="bi bi-file-earmark-pdf"></i> PDF
+                    </button>
+                    <button class="btn btn-outline-secondary" onclick="exportInventory('excel')">
+                        <i class="bi bi-file-earmark-excel"></i> Excel
+                    </button>
+                    <button class="btn btn-outline-secondary" onclick="exportInventory('csv')">
+                        <i class="bi bi-file-earmark-text"></i> CSV
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vue Scan -->
+        <div id="scan-view" class="view hidden">
+            <h2><i class="bi bi-upc-scan"></i> Scanner un produit</h2>
+            
+            <div class="card">
+                <div class="card-header">
+                    <ul class="nav nav-tabs card-header-tabs">
+                        <li class="nav-item">
+                            <a class="nav-link active" id="scanner-tab" data-bs-toggle="tab" href="#scanner-content">Scanner</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="manual-tab" data-bs-toggle="tab" href="#manual-content">Recherche manuelle</a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="card-body">
+                    <div class="tab-content">
+                        <div class="tab-pane fade show active" id="scanner-content">
+                            <div id="reader"></div>
+                            <div class="text-center mt-3">
+                                <button id="start-scan" class="btn btn-primary">
+                                    <i class="bi bi-camera"></i> Démarrer le scan
+                                </button>
+                                <button id="stop-scan" class="btn btn-danger" disabled>
+                                    <i class="bi bi-stop-circle"></i> Arrêter
+                                </button>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="manual-content">
+                            <div class="mb-3">
+                                <label for="manual-search-type" class="form-label">Rechercher par</label>
+                                <select class="form-select" id="manual-search-type">
+                                    <option value="marque">Marque</option>
+                                    <option value="model">Modèle</option>
+                                    <option value="serial">Numéro de série</option>
+                                </select>
+                            </div>
+                            <div class="input-group mb-3">
+                                <input type="text" class="form-control" id="manual-search" placeholder="Entrez votre recherche...">
+                                <button class="btn btn-primary" type="button" onclick="manualSearch()">
+                                    <i class="bi bi-search"></i> Rechercher
+                                </button>
+                            </div>
+                            <div id="manual-search-results" class="mt-3">
+                                <!-- Résultats de recherche -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <button class="btn btn-secondary mt-3" onclick="showView('home')">
+                <i class="bi bi-arrow-left"></i> Retour
+            </button>
+        </div>
+
+        <!-- Vue CVI -->
+        <div id="cvi-view" class="view hidden">
+            <h2><i class="bi bi-calendar-check"></i> Gestion des CVI</h2>
+            
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="cvi-search" placeholder="Rechercher...">
+                                <button class="btn btn-outline-secondary" type="button" onclick="filterCVI()">
+                                    <i class="bi bi-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <select class="form-select" id="cvi-filter" onchange="filterCVI()">
+                                <option value="all">Tous les statuts</option>
+                                <option value="expired">Expirés</option>
+                                <option value="expiring">Bientôt expirés</option>
+                                <option value="valid">Valides</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Marque</th>
+                            <th>Modèle</th>
+                            <th>Numéro de série</th>
+                            <th>Emplacement</th>
+                            <th>Date fin CVI</th>
+                            <th>Statut</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cvi-table-body">
+                        <!-- Rempli dynamiquement -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <button class="btn btn-secondary mt-3" onclick="showView('home')">
+                <i class="bi bi-arrow-left"></i> Retour
+            </button>
+        </div>
+
+        <!-- Vue Export/Import -->
+        <div id="export-view" class="view hidden">
+            <h2><i class="bi bi-cloud-arrow-down"></i> Gestion des sauvegardes</h2>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <i class="bi bi-cloud-arrow-up"></i> Exporter les données
+                        </div>
+                        <div class="card-body">
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-outline-primary" onclick="exportData('json')">
+                                    <i class="bi bi-filetype-json"></i> Exporter en JSON
+                                </button>
+                                <button class="btn btn-outline-success" onclick="exportData('excel')">
+                                    <i class="bi bi-file-earmark-excel"></i> Exporter en Excel
+                                </button>
+                                <button class="btn btn-outline-secondary" onclick="exportData('csv')">
+                                    <i class="bi bi-filetype-csv"></i> Exporter en CSV
+                                </button>
+                                <button class="btn btn-outline-danger" onclick="exportData('pdf')">
+                                    <i class="bi bi-file-earmark-pdf"></i> Exporter en PDF
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-success text-white">
+                            <i class="bi bi-cloud-arrow-down"></i> Importer des données
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="import-type" class="form-label">Type de fichier</label>
+                                <select class="form-select" id="import-type">
+                                    <option value="json">JSON</option>
+                                    <option value="excel">Excel</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="import-file" class="form-label">Fichier à importer</label>
+                                <input type="file" class="form-control" id="import-file">
+                            </div>
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="merge-data" checked>
+                                <label class="form-check-label" for="merge-data">
+                                    Fusionner avec les données existantes
+                                </label>
+                            </div>
+                            <button class="btn btn-success w-100" onclick="importData()">
+                                <i class="bi bi-upload"></i> Importer
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mt-4">
+                <div class="card-header bg-warning text-dark">
+                    <i class="bi bi-exclamation-triangle"></i> Zone dangereuse
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">Ces actions sont irréversibles. Utilisez avec précaution.</p>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-danger" onclick="confirmResetData()">
+                            <i class="bi bi-trash"></i> Réinitialiser toutes les données
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <button class="btn btn-secondary mt-3" onclick="showView('home')">
+                <i class="bi bi-arrow-left"></i> Retour
+            </button>
+        </div>
+
+        <!-- Vue Statistiques -->
+        <div id="stats-view" class="view hidden">
+            <h2><i class="bi bi-graph-up"></i> Statistiques</h2>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Répartition par catégorie</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="categoryChart" height="300"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Statut des CVI</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="cviStatusChart" height="300"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5>Machines par emplacement</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="locationChart" height="300"></canvas>
+                </div>
+            </div>
+            
+            <button class="btn btn-secondary mt-3" onclick="showView('home')">
+                <i class="bi bi-arrow-left"></i> Retour
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal Produit -->
+    <div class="modal fade" id="productModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">Fiche Produit</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="product-modal-body">
+                    <!-- Rempli dynamiquement -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle"></i> Fermer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal QR Code -->
+    <div class="modal fade" id="qrCodeModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">QR Code</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <div id="qr-code-modal-content"></div>
+                    <div class="mt-3">
+                        <button class="btn btn-primary" onclick="downloadQRCode()">
+                            <i class="bi bi-download"></i> Télécharger
+                        </button>
+                        <button class="btn btn-secondary" onclick="printQRCode()">
+                            <i class="bi bi-printer"></i> Imprimer
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Confirmation -->
+    <div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title">Confirmation</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="confirm-modal-body">
+                    <!-- Rempli dynamiquement -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-danger" id="confirm-action-btn">Confirmer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overlay de chargement -->
+    <div id="loading-overlay" class="loading-overlay hidden">
+        <div class="text-center">
+            <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status">
+                <span class="visually-hidden">Chargement...</span>
+            </div>
+            <h3 id="loading-text">Chargement en cours...</h3>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
+    <script>
+        // Variables globales
+        let machines = JSON.parse(localStorage.getItem('machines')) || [];
+        let activityLog = JSON.parse(localStorage.getItem('activityLog')) || [];
+        let html5QrcodeScanner = null;
+        let currentScanIndex = null;
+        let currentQRCodeData = null;
+        let charts = {};
+        
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            // Événements
+            document.getElementById('add-machine-form').addEventListener('submit', addMachine);
+            document.getElementById('start-scan').addEventListener('click', startScanner);
+            document.getElementById('stop-scan').addEventListener('click', stopScanner);
+            
+            // Initialiser les onglets
+            const tabElms = document.querySelectorAll('button[data-bs-toggle="tab"]');
+            tabElms.forEach(tabEl => {
+                tabEl.addEventListener('shown.bs.tab', function(event) {
+                    if (event.target.id === 'scanner-tab') {
+                        stopScanner();
+                    }
+                });
+            });
+            
+            // Charger les données
+            updateDashboard();
+            showView('home');
+        });
+
+        // ==============================================
+        // GESTION DES VUES
+        // ==============================================
+        
+        function showView(viewName) {
+            document.querySelectorAll('.view').forEach(view => {
+                view.classList.add('hidden');
+            });
+            document.getElementById(`${viewName}-view`).classList.remove('hidden');
+            
+            // Actions spécifiques à chaque vue
+            switch(viewName) {
+                case 'home':
+                    updateDashboard();
+                    break;
+                case 'list-machines':
+                    updateInventory();
+                    break;
+                case 'cvi':
+                    updateCVIList();
+                    break;
+                case 'stats':
+                    initCharts();
+                    break;
+                case 'scan':
+                    stopScanner();
+                    break;
+            }
+        }
+        
+        function updateDashboard() {
+            document.getElementById('total-machines').textContent = machines.reduce((sum, m) => sum + m.quantite, 0);
+            
+            // Calculer les CVI expirés et bientôt expirés
+            let expired = 0;
+            let expiring = 0;
+            
+            machines.forEach(machine => {
+                (machine.unites || []).forEach(unit => {
+                    if (unit.etatcvi === 'oui' && unit.dateFinCVI) {
+                        const endDate = new Date(unit.dateFinCVI);
+                        const today = new Date();
+                        const diffTime = endDate - today;
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        
+                        if (diffDays < 0) {
+                            expired++;
+                        } else if (diffDays <= 30) {
+                            expiring++;
+                        }
+                    }
+                });
+            });
+            
+            document.getElementById('expired-cvi').textContent = expired;
+            document.getElementById('expiring-cvi').textContent = expiring;
+            
+            // Mettre à jour l'activité récente
+            updateRecentActivity();
+        }
+        
+        function updateRecentActivity() {
+            const tbody = document.getElementById('recent-activity');
+            tbody.innerHTML = '';
+            
+            // Trier par date (du plus récent au plus ancien)
+            const sortedActivity = [...activityLog].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            
+            // Afficher les 5 dernières activités
+            sortedActivity.slice(0, 5).forEach(activity => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${formatDate(activity.timestamp)}</td>
+                    <td>${activity.action}</td>
+                    <td>${activity.machine || ''}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+        
+        function logActivity(action, machineInfo = null) {
+            const activity = {
+                timestamp: new Date().toISOString(),
+                action: action,
+                machine: machineInfo ? `${machineInfo.marque} ${machineInfo.model}` : null
+            };
+            
+            activityLog.unshift(activity);
+            if (activityLog.length > 50) {
+                activityLog = activityLog.slice(0, 50);
+            }
+            
+            localStorage.setItem('activityLog', JSON.stringify(activityLog));
+            updateRecentActivity();
+        }
+
+        // ==============================================
+        // GESTION DES MACHINES
+        // ==============================================
+        
+        function addMachine(e) {
+            e.preventDefault();
+            showLoading('Ajout de la machine...');
+            
+            const marque = document.getElementById('marque').value.trim();
+            const model = document.getElementById('model').value.trim();
+            const quantite = parseInt(document.getElementById('quantite').value);
+            const position = document.getElementById('position').value.trim();
+            const categorie = document.getElementById('categorie').value;
+            const notes = document.getElementById('notes').value.trim();
+            
+            if (!marque || !model || isNaN(quantite) || quantite < 1 || !position) {
+                hideLoading();
+                showAlert('Veuillez remplir tous les champs obligatoires', 'danger');
+                return;
+            }
+            
+            // Vérifier si le modèle existe déjà
+            const existingIndex = machines.findIndex(m => 
+                m.marque.toLowerCase() === marque.toLowerCase() && 
+                m.model.toLowerCase() === model.toLowerCase()
+            );
+            
+            if (existingIndex !== -1) {
+                // Mise à jour de la quantité
+                machines[existingIndex].quantite += quantite;
+                machines[existingIndex].position = position;
+                
+                // Créer les unités supplémentaires
+                for (let i = 0; i < quantite; i++) {
+                    machines[existingIndex].unites.push({
+                        numserie: '',
+                        etatcvi: 'non',
+                        dateFinCVI: null
+                    });
+                }
+                
+                logActivity('Quantité mise à jour', machines[existingIndex]);
+                showAlert('Quantité mise à jour pour ce modèle', 'success');
+            } else {
+                // Nouvelle machine
+                const newMachine = {
+                    marque: marque,
+                    model: model,
+                    quantite: quantite,
+                    position: position,
+                    categorie: categorie,
+                    notes: notes,
+                    unites: [],
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                };
+                
+                // Créer les unités
+                for (let i = 0; i < quantite; i++) {
+                    newMachine.unites.push({
+                        numserie: '',
+                        etatcvi: 'non',
+                        dateFinCVI: null
+                    });
+                }
+                
+                machines.push(newMachine);
+                logActivity('Nouvelle machine ajoutée', newMachine);
+                showAlert('Nouveau modèle ajouté', 'success');
+            }
+            
+            saveMachines();
+            document.getElementById('add-machine-form').reset();
+            hideLoading();
+            showView('list-machines');
+        }
+        
+        function updateInventory() {
+            const tbody = document.getElementById('machines-table-body');
+            tbody.innerHTML = '';
+            
+            if (machines.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center">Aucune machine enregistrée</td></tr>';
+                return;
+            }
+            
+            machines.forEach((machine, index) => {
+                const tr = document.createElement('tr');
+                const qr = qrcode(0, 'L');
+                qr.addData(JSON.stringify({
+                    id: index,
+                    marque: machine.marque,
+                    model: machine.model,
+                    position: machine.position
+                }));
+                qr.make();
+                
+                // Compter les unités avec CVI
+                const cviCount = (machine.unites || []).filter(u => u.etatcvi === 'oui').length;
+                
+                tr.innerHTML = `
+                    <td>${machine.marque}</td>
+                    <td>${machine.model}</td>
+                    <td>${machine.categorie || 'Non spécifié'}</td>
+                    <td>${machine.quantite} ${cviCount > 0 ? `(${cviCount} avec CVI)` : ''}</td>
+                    <td>${machine.position}</td>
+                    <td>
+                        <button class="btn btn-sm btn-primary me-1" onclick="showProductModal(${index})" title="Modifier">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="confirmDeleteMachine(${index})" title="Supprimer">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                    <td class="text-center">
+                        <div class="qr-code-img" onclick="showQRCodeModal(${index})">
+                            ${qr.createImgTag(2)}
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+        
+        function filterMachines() {
+            const searchTerm = document.getElementById('inventory-search').value.toLowerCase();
+            const filterValue = document.getElementById('inventory-filter').value;
+            
+            const rows = document.querySelectorAll('#machines-table-body tr');
+            
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                const marque = cells[0].textContent.toLowerCase();
+                const model = cells[1].textContent.toLowerCase();
+                const categorie = cells[2].textContent.toLowerCase();
+                const position = cells[4].textContent.toLowerCase();
+                
+                const matchesSearch = marque.includes(searchTerm) || model.includes(searchTerm) || position.includes(searchTerm);
                 const matchesFilter = filterValue === 'all' || categorie.includes(filterValue.toLowerCase());
                 
                 row.style.display = matchesSearch && matchesFilter ? '' : 'none';
