@@ -1,0 +1,1081 @@
+<html lang="fr"><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion des Machines</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
+    <style>
+        body {
+            padding-bottom: 50px;
+        }
+        .card {
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .table-responsive {
+            margin-top: 20px;
+        }
+        #reader {
+            min-height: 300px;
+            border: 2px dashed #ccc;
+            margin-bottom: 15px;
+        }
+        .qr-code-img {
+            max-width: 200px;
+            height: auto;
+        }
+        .hidden {
+            display: none;
+        }
+        .alert {
+            transition: opacity 0.5s ease-out;
+        }
+    </style>
+</head>
+<body class="" style="">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-danger">
+        <div class="container">
+	    <a class="navbar-brand" href="#" onclick="showView('home')">
+  				<img src="C:\Users\logistique\Desktop\Logo-axitest.png" alt="Logo" width="90" height="40" class="d-inline-block align-text-top">
+  				Gestion Machines</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-expanded="true">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="navbar-collapse collapse show" id="navbarNav" style="">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showView('add-machine')">Ajouter</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showView('list-machines')">Liste</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showView('scan')">Scanner</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showView('cvi')">CVI</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showView('export')">Sauvegarde</a>
+		    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div id="alert-placeholder"></div>
+
+        <!-- Vue Accueil -->
+        <div id="home-view" class="view hidden">
+            <h2>Gestionnaire de machines</h2>
+            <div class="d-grid gap-2">
+                <button class="btn btn-danger" onclick="showView('add-machine')">Ajouter une machine</button>
+                <button class="btn btn-secondary" onclick="showView('list-machines')">Voir l'inventaire</button>
+                <button class="btn btn-secondary" onclick="showView('scan')">Scanner un produit</button>
+		<button class="btn btn-secondary" onclick="showView('scan')">Admin</button>
+            </div>
+        </div>
+
+        <!-- Vue Ajout Machine -->
+        <div id="add-machine-view" class="view hidden">
+            <h2>Ajouter une machine</h2>
+            <form id="add-machine-form">
+                <div class="mb-3">
+                    <label for="marque" class="form-label">Marque</label>
+                    <input type="text" class="form-control" id="marque" required="">
+                </div>
+                <div class="mb-3">
+                    <label for="model" class="form-label">Modèle</label>
+                    <input type="text" class="form-control" id="model" required="">
+                </div>
+                <div class="mb-3">
+                    <label for="quantite" class="form-label">Quantité</label>
+                    <input type="number" class="form-control" id="quantite" min="1" value="1" required="">
+                </div>
+                <div class="mb-3">
+                    <label for="position" class="form-label">Emplacement</label>
+		    <input type="text" class="form-control" id="position" required="">
+                </div>
+		<div id="unit-fields-container"></div>
+
+                <button type="submit" class="btn btn-primary">Enregistrer</button>
+                <button type="button" class="btn btn-secondary" onclick="showView('home')">Annuler</button>
+		<button type="button" class="btn btn-sm btn-outline-success" onclick="printQRCode()">Imprimer le QR</button>
+            </form>
+        </div>
+
+        <!-- Vue Liste Machines -->
+        <div id="list-machines-view" class="view hidden">
+            <h2>Inventaire des Machines</h2>
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Marque</th>
+                            <th>Modèle</th>
+                            <th>Quantité</th>
+			    <th>Emplacement</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="machines-table-body"><tr>
+                    <td>Tektronix</td>
+                    <td>r</td>
+                    <td>1</td>
+                    <td>B-2 + B-7 + Bonjour</td>
+                    <td>
+                        <button class="btn btn-sm btn-primary" onclick="showProductModal(0)">
+                            Modifier
+                        </button>
+                    </td>
+                </tr></tbody>
+                </table>
+            </div>
+            <button class="btn btn-secondary" onclick="showView('home')">Retour</button>
+        </div>
+
+        <!-- Vue Scan -->
+        <div id="scan-view" class="view hidden">
+            <h2>Scanner un produit</h2>
+            <div class="card">
+                <div class="card-body">
+                    <div id="reader" style="position: relative; padding: 0px; border: none;"></div>
+		    <video id="video" autoplay playsinline></video>
+    		    <canvas id="canvas" hidden></canvas>
+    		    <div id="result">En attente de scan...</div>
+		    <div class="text-center mt-3">
+                        <button id="startButton" class="btn btn-primary">Démarrer le scan</button>
+                        <button id="stopButton" class="btn btn-danger" disabled="">Arrêter</button>
+                    </div>
+                </div>
+            </div>
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h5>Recherche manuelle</h5>
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="manual-search" placeholder="Marque ou modèle">
+                        <button class="btn btn-primary" type="button" onclick="manualSearch()">Rechercher</button>
+                    </div>
+        	    <div id="search-results" class="mt-3"></div>
+                </div>
+            </div>
+            <button class="btn btn-secondary mt-3" onclick="showView('home')">Retour</button>
+        </div>
+	<div id="unit-detail-view" class="view hidden">
+    		<h2>Détail de l’unité</h2>
+    		<div id="unit-detail-content" class="border rounded p-3 bg-light"></div>
+    		<button class="btn btn-secondary mt-3" onclick="showView('home')">Retour</button>
+	</div>
+        
+        <!-- Vue CVI -->
+        <div id="cvi-view" class="view">
+            <h2>Gestion des CVI</h2>
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Marque</th>
+                            <th>Modèle</th>
+			    <th>Numéro de série</th>
+			    <th>Emplacement</th>
+                            <th>Date fin CVI</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cvi-table-body"><tr><td colspan="6" class="text-center">Aucune machine avec CVI</td></tr></tbody>
+                </table>
+            </div>
+            <button class="btn btn-secondary" onclick="showView('home')">Retour</button>
+        </div>
+    </div>
+
+    <div id="export-view" class="view hidden">
+		<h2>Gérer une sauvegarde</h2>
+		<form id="add-export-form">
+                	<div class="d-grid gap-2">
+                    		<button class="btn btn-danger" onclick="exportData()">Exporter (JSON) </button>
+				<button class="btn btn-danger" onclick="exportDataToExcel()">Exporter (EXCEL)</button>
+				<a>Importer un fichier (JSON)</a>
+				<input type="file" id="import-file" class="form-control mt-2" onchange="importData()">
+				<a>Importer un fichier (EXCEL)</a>
+				<input type="file" id="import-file" class="form-control" accept=".xlsx, .xls, .json" onchange="importDataFromExcel()">
+			</div>		
+	</form></div>		
+
+    <!-- Modal pour afficher le QR Code -->
+    <div class="modal fade" id="qrCodeModal" tabindex="-1" aria-labelledby="qrCodeModalLabel" aria-hidden="true">
+  	<div class="modal-dialog modal-dialog-centered">
+    		<div class="modal-content text-center">
+     			<div class="modal-header">
+        			<h5 class="modal-title" id="qrCodeModalLabel">QR Code</h5>
+        			<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      			</div>
+      			<div class="modal-body" id="qrCodeModalBody"></div>
+    		</div>
+  	</div>
+    </div>
+
+    <!-- Modal Produit -->
+    <div class="modal fade" id="productModal" tabindex="-1" style="display: none;" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Fiche Produit</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="product-modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Marque</label>
+                    <input type="text" class="form-control" id="modal-marque" value="Tektronix">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Modèle</label>
+                    <input type="text" class="form-control" id="modal-model" value="3750">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Quantité</label>
+                    <input type="number" class="form-control" id="modal-quantity" value="1" min="1">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Emplacement</label>
+                    <input type="text" class="form-control" id="modal-position" value="B-2">
+                </div>
+                <div class="d-flex justify-content-between">
+                    <button class="btn btn-primary" onclick="updateProduct()">Enregistrer</button>
+                    <button class="btn btn-danger" onclick="deleteMachine(0)">Supprimer</button>
+                </div>
+            </div>
+            </div>
+        </div>
+     </div>
+	<div id="unit-edit-view" class="view hidden">
+	   <div class="card shadow mx-auto mt-4" style="max-width: 600px;">
+	      <div class="card-body">
+    		<h2>Modifier l’unité</h2>
+    		<form id="unit-edit-form">
+        		<div class="mb-3">
+            			<label class="form-label">Marque</label>
+           	 		<input type="text" class="form-control" id="edit-unit-marque" required>
+        		</div>
+        		<div class="mb-3">
+            			<label class="form-label">Modèle</label>
+            			<input type="text" class="form-control" id="edit-unit-modele" required>
+        		</div>
+        		<div class="mb-3">
+            			<label class="form-label">Numéro de série</label>
+            			<input type="text" class="form-control" id="edit-unit-numserie" required>
+        		</div>
+        		<div class="mb-3">
+            			<label class="form-label">Emplacement</label>
+            			<input type="text" class="form-control" id="edit-unit-position" required>
+        		</div>
+        		<div class="mb-3">
+            			<label class="form-label">CVI</label>
+            			<select class="form-select" id="edit-unit-cvi">
+                			<option value="non">Non</option>
+                			<option value="oui">Oui</option>
+            			</select>
+        		</div>
+        		<div class="mb-3" id="edit-unit-cvi-date-container">
+            			<label class="form-label">Date fin CVI</label>
+            			<input type="date" class="form-control" id="edit-unit-date-cvi">
+        		</div>
+        		<button type="submit" class="btn btn-success">Enregistrer</button>
+        		<button type="button" class="btn btn-secondary" onclick="showView('home')">Retour</button>
+    		</form>
+	     </div>
+	  </div>
+	</div>
+
+    </div>
+    <script>
+        // Variables globales
+        let machines = JSON.parse(localStorage.getItem('machines')) || [];
+        let html5QrcodeScanner = null;
+        let currentScanIndex = null;
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            // Événements
+            showView('home');
+            document.getElementById('add-machine-form').addEventListener('submit', addMachine);
+            document.getElementById('etatcvi').addEventListener('change', toggleCVIDate);
+        });
+
+        // Gestion des vues
+        function showView(viewName) {
+            document.querySelectorAll('.view').forEach(view => {
+                view.classList.add('hidden');
+            });
+            document.getElementById(`${viewName}-view`).classList.remove('hidden');
+            
+            if (viewName === 'list-machines') updateInventory();
+            if (viewName === 'cvi') updateCVIList();
+	    if (viewName === 'add-machine') {
+    		document.getElementById('quantite').dispatchEvent(new Event('input'));
+	    }
+        }
+
+        // Ajout machine
+        function addMachine(e) {
+            e.preventDefault();
+            
+            const marque = document.getElementById('marque').value.trim();
+            const model = document.getElementById('model').value.trim();
+            const quantite = parseInt(document.getElementById('quantite').value);
+            const etatcvi = 'non';
+            const dateFinCVI = null;
+	    const position= document.getElementById('position').value.trim();
+
+            if (!marque || !model || isNaN(quantite) || !position || (etatcvi === 'oui' && !dateFinCVI)) {
+                showAlert('Veuillez remplir tous les champs obligatoires', 'danger');
+                return;
+            }
+
+            // Vérifier si le modèle existe déjà
+	    const existingIndex = machines.findIndex(m => 
+    		m.marque && m.model && m.position &&
+    		m.marque.toLowerCase() === marque.toLowerCase() && 
+    		m.model.toLowerCase() === model.toLowerCase() &&
+		m.position.toLowerCase() === position.toLowerCase()
+            );
+
+            if (existingIndex !== -1) {
+                // Mise à jour de la quantité
+                machines[existingIndex].quantite += quantite;
+                // Mise à jour CVI si nécessaire
+                if (etatcvi === 'oui') {
+                    machines[existingIndex].etatcvi = 'oui';
+                    machines[existingIndex].dateFinCVI = dateFinCVI;
+                }
+                showAlert('Quantité mise à jour pour ce modèle', 'success');
+            } else {
+                // Nouvelle machine
+                machines.push({
+                    marque: marque,
+                    model: model,
+                    quantite,
+		    position,
+                    etatcvi,
+                    dateFinCVI,
+		    unites: Array.from({ length: quantite }, (_, i) => ({
+    			numserie: document.getElementById(`numserie-${i}`).value.trim(),
+    			etatcvi: document.getElementById(`etatcvi-${i}`).value,
+    			dateFinCVI: document.getElementById(`etatcvi-${i}`).value === 'oui' ? document.getElementById(`dateFinCVI-${i}`).value : null
+			})),
+                    createdAt: new Date().toISOString()
+                });
+                showAlert('Nouveau modèle ajouté', 'success');
+            }
+
+            saveMachines();
+            document.getElementById('add-machine-form').reset();
+            showView('list-machines');
+        }
+	
+	document.getElementById('quantite').addEventListener('input', function () {
+    		const count = parseInt(this.value);
+    		const container = document.getElementById('unit-fields-container');
+    		container.innerHTML = ''; 
+
+    		if (isNaN(count) || count < 1) return;
+
+    		for (let i = 0; i < count; i++) {
+        		container.innerHTML += `
+        		<div class="card mb-3 shadow-sm">
+                		<div class="card-header bg-light">
+                    			<strong>Unité ${i + 1}</strong>
+                		</div>
+               			<div class="card-body">
+                    			<div class="row g-2">
+                        			<div class="col-md-4">
+                           				<label class="form-label">N° de série</label>
+                            				<input type="text" class="form-control" id="numserie-${i}" >
+                        			</div>
+                        			<div class="col-md-4">
+                            				<label class="form-label">CVI</label>
+                            				<select class="form-select" id="etatcvi-${i}">
+                                				<option value="non">Non</option>
+                                				<option value="oui">Oui</option>
+                            				</select>
+                        			</div>
+                        			<div class="col-md-4">
+                            				<label class="form-label">Date fin CVI</label>
+                            				<input type="date" class="form-control" id="dateFinCVI-${i}" >
+                        			</div>
+                    			</div>
+                		</div>
+            		</div>
+            		`;
+        	}
+    	});
+
+        // Mise à jour inventaire
+	function updateInventory() {
+    		const tbody = document.getElementById('machines-table-body');
+    		tbody.innerHTML = '';
+
+    		if (machines.length === 0) {
+        		tbody.innerHTML = '<tr><td colspan="6" class="text-center">Aucune machine enregistrée</td></tr>';
+        		return;
+    		}
+
+    		machines.forEach((machine, index) => {
+        		const tr = document.createElement('tr');
+        		tr.innerHTML = `
+            			<td>${machine.marque}</td>
+            			<td>${machine.model}</td>
+            			<td>${machine.quantite}</td>
+            			<td>${machine.position}</td>
+            			<td>
+    					<button class="btn btn-sm btn-primary me-1" onclick="showProductModal(${index})">Voir plus</button>
+    					<button class="btn btn-sm btn-outline-secondary" onclick="toggleUnitDetails('units-${index}')">Unités</button>
+            			</td>
+            			<td>
+                			    <button class="btn btn-sm btn-info" onclick="showQRCodeModal(${index})">Voir QR Code</button>
+            			</td>
+        		`;
+        		tbody.appendChild(tr);
+
+        		const unitTr = document.createElement('tr');
+        		unitTr.innerHTML = `
+            			<td colspan="6" id="units-${index}" style="display: none;">
+                			<div class="p-2 border rounded mt-2 bg-light">
+                    				${generateUnitFields(machine, index)}
+						<div class="d-flex justify-content-between mt-2">
+                    					<button class="btn btn-success btn-sm mt-2" onclick="saveUnitDetails(${index})">
+                        					Enregistrer les unités
+                    					</button>
+							<button class="btn btn-sm btn-outline-primary" onclick="addUnit(${index})">Ajouter une unité</button>
+						</div>
+                			</div>
+           			 </td>
+        		`;
+       			tbody.appendChild(unitTr);
+    		});
+	}
+
+	function addUnit(index) {
+    		const machine = machines[index];
+    		machine.unites = machine.unites || [];
+
+    		machine.unites.push({
+        		numserie: '',
+        		etatcvi: 'non',
+        		dateFinCVI: ''
+    		});
+
+    		machine.quantite = machine.unites.length;
+
+    		saveMachines();
+    		updateInventory();
+    		updateCVIList();
+    		showAlert("Une unité a été ajoutée", "success");
+
+    		// Ouvre automatiquement les détails de l’unité
+    		document.getElementById(`units-${index}`).style.display = 'block';
+	}
+
+	function toggleUnitDetails(id) {
+    		const container = document.getElementById(id);
+		container.style.display = container.style.display === 'none' ? 'block' : 'none';
+	}
+
+	function showQRCodeModal(qrHtml) {
+    		document.getElementById('qrCodeModalBody').innerHTML = qrHtml;
+    		new bootstrap.Modal(document.getElementById('qrCodeModal')).show();
+	}
+
+	function generateUnitFields(machine, index) {
+    		const unites = machine.unites || [];
+    		let html = '';
+
+    		for (let i = 0; i < machine.quantite; i++) {
+        		const unit = unites[i] || { numserie: '', etatcvi: 'non', dateFinCVI: '' };
+        		const qrId = `qr-unit-${index}-${i}`;
+        		html += `
+           	 		<div class="border p-2 mb-2 rounded">
+               				 <strong>Unité ${i + 1}</strong>
+                			 <div class="row">
+                    			 	<div class="col-md-4">
+                        				<label>Numéro de série</label>
+                        				<input type="text" class="form-control" id="unit-${index}-${i}-numserie" value="${unit.numserie}">
+                    				</div>
+                    				<div class="col-md-3">
+                        				<label>CVI</label>
+                        				<select class="form-select" id="unit-${index}-${i}-etatcvi">
+                            					<option value="non" ${unit.etatcvi === 'non' ? 'selected' : ''}>Non</option>
+                            					<option value="oui" ${unit.etatcvi === 'oui' ? 'selected' : ''}>Oui</option>
+                       					</select>
+                    				</div>
+                    				<div class="col-md-5">
+                        				<label>Date fin CVI</label>
+                        				<input type="date" class="form-control" id="unit-${index}-${i}-dateFinCVI" value="${unit.dateFinCVI || ''}">
+                    				</div>
+                			</div>
+                			<div class="mt-2">
+                    				<div id="${qrId}" class="qr-code-img"></div>
+						<button class="btn btn-sm btn-danger" onclick="deleteUnit(${index}, ${i})">Supprimer</button>
+						<button class="btn btn-sm btn-outline-success" onclick="downloadQRCode('${machine.marque} | ${machine.model} | ${unit.numserie}', 'QR-${unit.numserie}.png', '${machine.marque}', '${machine.model}', '${unit.numserie}')">Télécharger</button>
+                			</div>
+            			</div>
+        		`;
+    		}
+    		return html;
+	}
+
+	function deleteUnit(machineIndex, unitIndex) {
+    		const machine = machines[machineIndex];
+    		if (!machine.unites || !machine.unites[unitIndex]) return;
+
+    		if (!confirm(`Supprimer l’unité n°${unitIndex + 1} (n° série: ${machine.unites[unitIndex].numserie}) ?`)) return;
+
+    		machine.unites.splice(unitIndex, 1);
+    		machine.quantite = machine.unites.length;
+
+    		saveMachines();
+    		updateInventory();
+    		updateCVIList();
+    		showAlert("Unité supprimée avec succès", "success");
+	}
+
+	function saveUnitDetails(index) {
+    		const machine = machines[index];
+    		const newUnits = [];
+
+    		for (let i = 0; i < machine.quantite; i++) {
+        		const numserie = document.getElementById(`unit-${index}-${i}-numserie`).value.trim();
+        		const etatcvi = document.getElementById(`unit-${index}-${i}-etatcvi`).value;
+        		const dateFinCVI = etatcvi === 'oui' ? document.getElementById(`unit-${index}-${i}-dateFinCVI`).value : null;
+        		newUnits.push({ numserie, etatcvi, dateFinCVI });
+    		}
+
+  		machines[index].unites = newUnits;
+    		saveMachines();
+    		updateCVIList();
+    		showAlert('Unités mises à jour avec succès', 'success');
+	}
+
+	function exportData() {
+    		const dataStr = JSON.stringify(machines);
+    		const blob = new Blob([dataStr], { type: "application/json" });
+    		const url = URL.createObjectURL(blob);
+    		const a = document.createElement("a");
+    		a.href = url;
+    		a.download = "machines.json";
+    		a.click();
+	}
+
+	function importData() {
+    		const fileInput = document.getElementById('import-file');
+    		const file = fileInput.files[0];
+    		if (!file) return;
+
+    	const reader = new FileReader();
+    	reader.onload = function(event) {
+        	try {
+            		const importedData = JSON.parse(event.target.result);
+            		if (Array.isArray(importedData)) {
+				if (!importedData.every(item => item.marque && item.model && Array.isArray(item.unites))) {
+    					showAlert("Structure de données incorrecte", "danger");
+    					return;
+				}
+               			machines = importedData;
+                		saveMachines();
+                		showAlert("Données importées avec succès", "success");
+                		updateInventory();
+            		} else {
+                		showAlert("Format de fichier invalide", "danger");
+            		}
+        	} catch (e) {
+            		showAlert("Erreur lors de l'importation", "danger");
+        	}
+    	};
+    	reader.readAsText(file);
+	}
+
+	function exportDataToExcel() {
+    		const expandedData = [];
+
+    		machines.forEach(machine => {
+        		const baseData = {
+            			marque: machine.marque,
+            			model: machine.model,
+            			quantite: machine.quantite,
+            			position: machine.position,
+        		};
+
+        		if (Array.isArray(machine.unites) && machine.unites.length > 0) {
+            			machine.unites.forEach(unit => {
+                			expandedData.push({
+                    				...baseData,
+                    				numserie: unit.numserie || '',
+                    				etatcvi: unit.etatcvi || 'non',
+                    				dateFinCVI: unit.dateFinCVI || ''
+                			});
+            			});
+        		} else {
+            			expandedData.push({
+                			...baseData,
+                			numserie: '',
+                			etatcvi: 'non',
+                			dateFinCVI: ''
+            			});
+        		}	
+    		});
+
+    		const ws = XLSX.utils.json_to_sheet(expandedData);
+    		const wb = XLSX.utils.book_new();
+    		XLSX.utils.book_append_sheet(wb, ws, "Inventaire");
+
+    		const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+    		const blob = new Blob([wbout], { type: "application/octet-stream" });
+
+    		const url = URL.createObjectURL(blob);
+    		const a = document.createElement("a");
+    		a.href = url;
+    		a.download = "inventaire.xlsx";
+    		a.click();
+	}
+
+	function importDataFromExcel() {
+    		const fileInput = document.getElementById('import-file');
+    		const file = fileInput.files[0];
+    		if (!file) return;
+
+    		const reader = new FileReader();
+    		reader.onload = function(event) {
+        		const data = new Uint8Array(event.target.result);
+        		const workbook = XLSX.read(data, { type: "array" });
+
+        		const firstSheetName = workbook.SheetNames[0];
+        		const worksheet = workbook.Sheets[firstSheetName];
+        		const importedRows = XLSX.utils.sheet_to_json(worksheet);
+
+        		const grouped = {};
+
+        		importedRows.forEach(row => {
+            			const key = `${row.marque}|${row.model}|${row.position}`;
+            			if (!grouped[key]) {
+                			grouped[key] = {
+                    				marque: row.marque,
+                    				model: row.model,
+                    				position: row.position,
+                   				quantite: 0,
+                	    			unites: []
+                			};
+           			}
+
+            			grouped[key].unites.push({
+                			numserie: row.numserie || '',
+                			etatcvi: row.etatcvi || 'non',
+               				dateFinCVI: row.etatcvi === 'oui' ? (row.dateFinCVI || null) : null
+            			});
+
+            			grouped[key].quantite++;
+        		});
+
+       	 		machines = Object.values(grouped).map(machine => ({
+            			...machine,
+            			etatcvi: 'non', // champ global ignoré ici
+            			dateFinCVI: null,
+            			createdAt: new Date().toISOString()
+        		}));
+
+        		saveMachines();
+        		showAlert("Importation Excel réussie", "success");
+        		updateInventory();
+    		};
+
+    		reader.readAsArrayBuffer(file);
+	}
+
+	let currentMachineIndex = null;
+	let currentUnitIndex = null;
+
+	function showUnitEditView(machineIndex, unitIndex) {
+    		currentMachineIndex = machineIndex;
+    		currentUnitIndex = unitIndex;
+
+    		const machine = machines[machineIndex];
+    		const unit = machine.unites[unitIndex];
+
+    		document.getElementById('edit-unit-marque').value = machine.marque;
+    		document.getElementById('edit-unit-modele').value = machine.model;
+    		document.getElementById('edit-unit-numserie').value = unit.numserie;
+    		document.getElementById('edit-unit-position').value = machine.position;
+    		document.getElementById('edit-unit-cvi').value = unit.etatcvi;
+    		document.getElementById('edit-unit-date-cvi').value = unit.dateFinCVI || '';
+
+    		showView('unit-edit');
+	}
+
+	document.getElementById('unit-edit-form').addEventListener('submit', function(e) {
+    		e.preventDefault();
+
+    		const machine = machines[currentMachineIndex];
+    		const unit = machine.unites[currentUnitIndex];
+
+    		machine.marque = document.getElementById('edit-unit-marque').value;
+    		machine.model = document.getElementById('edit-unit-modele').value;
+    		unit.numserie = document.getElementById('edit-unit-numserie').value;
+    		machine.position = document.getElementById('edit-unit-position').value;
+    		unit.etatcvi = document.getElementById('edit-unit-cvi').value;
+    		unit.dateFinCVI = (unit.etatcvi === 'oui') ? document.getElementById('edit-unit-date-cvi').value : null;
+
+    		saveMachines();
+    		showAlert('Unité mise à jour', 'success');
+    		showView('list-machines');
+	});
+
+	function downloadQRCode(data, filename = "qr-code.png", marque = "", model = "",numserie="") {
+    		const qr = qrcode(0, 'L');
+    		qr.addData(data);
+    		qr.make();
+
+    		const qrImg = new Image();
+    		qrImg.src = qr.createDataURL(10);
+
+    		qrImg.onload = () => {
+        		const padding = 10;
+        		const fontSize = 28;
+        		const lineHeight = fontSize + 4;
+
+        		const canvas = document.createElement("canvas");
+        		const width = qrImg.width + 10;
+       	 		const height = qrImg.height + padding + (lineHeight * 3); 
+
+        		canvas.width = width;
+        		canvas.height = height;
+
+        		const ctx = canvas.getContext("2d");
+
+        		ctx.fillStyle = "#fff";
+        		ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        		ctx.drawImage(qrImg, 0, 0);
+
+        		ctx.fillStyle = "#000";
+        		ctx.font = `${fontSize}px Arial`;
+        		ctx.textAlign = "center";
+
+        		const centerX = width / 2;
+        		const startY = qrImg.height + padding;
+
+        		ctx.fillText(`Marque : ${marque}`, centerX, startY);
+        		ctx.fillText(`Modèle : ${model}`, centerX, startY + lineHeight);
+			ctx.fillText(`S/N : ${numserie}`, centerX, startY + lineHeight*2);
+
+        		const link = document.createElement("a");
+        		link.download = filename;
+        		link.href = canvas.toDataURL("image/png");
+        		link.click();
+    		};
+	}
+
+	function printQRCode() {
+            const marque = document.getElementById('marque').value.trim();
+            const model = document.getElementById('model').value.trim();
+            const position = document.getElementById('position').value.trim();
+            const quantite = parseInt(document.getElementById('quantite').value);
+
+            // Validation des champs
+            if (!marque || !model || !position || isNaN(quantite)) {
+                showAlert('Veuillez remplir tous les champs avant d\'imprimer', 'danger');
+                return;
+            }
+
+        // Mise à jour liste CVI
+	function updateCVIList() {
+   		const tbody = document.getElementById('cvi-table-body');
+		tbody.innerHTML = '';
+
+		let found = false;
+
+   		machines.forEach(machine => {
+        		(machine.unites || []).forEach(unit => {
+            			if (unit.etatcvi === 'oui' && unit.numserie) {
+                			const tr = document.createElement('tr');
+                			tr.innerHTML = `
+                    				<td>${machine.marque}</td>
+                    				<td>${machine.model}</td>
+                    				<td>${unit.numserie}</td>
+                    				<td>${machine.position}</td>
+                    				<td>${unit.dateFinCVI}</td>
+                    				<td><button class="btn btn-sm btn-primary" onclick="showProductModal(${machines.indexOf(machine)})">Modifier</button></td>
+                			`;
+                			tbody.appendChild(tr);
+                			found = true;
+            			}
+        		});
+    		});
+
+    		if (!found) {
+        		tbody.innerHTML = '<tr><td colspan="6" class="text-center">Aucune machine avec CVI</td></tr>';
+    		}
+	}
+
+          	
+
+        // Modal produit
+        function showProductModal(index) {
+            const machine = machines[index];
+            currentScanIndex = index;
+            
+            const modalBody = document.getElementById('product-modal-body');
+	    let unitFields = '';
+	    (machine.unites || []).forEach((unit, i) => {
+  			unitFields += `
+    				<div class="border p-2 mb-2">
+      					<strong>Unité ${i + 1}</strong>
+      					<div class="mb-2">
+        					<label>Numéro de série</label>
+        					<input type="text" class="form-control" id="numserie-${i}" value="${unit.numserie || ''}">
+      					</div>
+	      				<div class="mb-2">
+        					<label>CVI</label>
+        					<select class="form-select" id="etatcvi-${i}">
+          						<option value="non" ${unit.etatcvi === 'non' ? 'selected' : ''}>Non</option>
+          						<option value="oui" ${unit.etatcvi === 'oui' ? 'selected' : ''}>Oui</option>
+        					</select>
+      					</div>
+      					<div class="mb-2">
+        					<label>Date fin CVI</label>
+        					<input type="date" class="form-control" id="dateFinCVI-${i}" value="${unit.dateFinCVI || ''}">
+      					</div>
+    				</div>
+  			`;
+	    });
+		
+            modalBody.innerHTML = `
+                <div class="mb-3">
+                    <label class="form-label">Marque</label>
+                    <input type="text" class="form-control"  id="modal-marque" value="${machine.marque}" >
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Modèle</label>
+                    <input type="text" class="form-control"  id="modal-model" value="${machine.model}" >
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Quantité</label>
+                    <input type="number" class="form-control" id="modal-quantity" value="${machine.quantite}" min="1">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Emplacement</label>
+                    <input type="text" class="form-control"  id="modal-position" value="${machine.position}" >
+                </div>
+		${unitFields}
+
+                <div class="d-flex justify-content-between">
+                    <button class="btn btn-primary" onclick="updateProduct()">Enregistrer</button>
+                    <button class="btn btn-danger" onclick="deleteMachine(${index})">Supprimer</button>
+                </div>
+            `;
+
+
+            new bootstrap.Modal(document.getElementById('productModal')).show();
+        }
+
+        // Mise à jour produit
+        function updateProduct() {
+            const index = currentScanIndex;
+            const newQuantity = parseInt(document.getElementById('modal-quantity').value);
+            const etatcvi = document.getElementById('modal-cvi').value;
+            const dateFinCVI = etatcvi === 'oui' ? document.getElementById('modal-cvi-date').value : null;
+	    const newposition = document.getElementById('modal-position').value;
+	    const newmodel = document.getElementById('modal-model').value;
+	    const newmarque = document.getElementById('modal-marque').value;
+	    const numserie = document.getElementById('modal-numserie').value.trim();
+	    const unitCount = machines[index].quantite;
+	    let unites = [];
+
+	    for (let i = 0; i < unitCount; i++) {
+            	const numserie = document.getElementById(`numserie-${i}`).value.trim();
+  		const etatcvi = document.getElementById(`etatcvi-${i}`).value;
+  		const dateFinCVI = etatcvi === 'oui' ? document.getElementById(`dateFinCVI-${i}`).value : null;
+
+  		unites.push({ numserie, etatcvi, dateFinCVI });
+	    }
+
+	    machines[index].unites = unites;
+
+
+            if (isNaN(newQuantity) || newQuantity < 1) {
+                showAlert('Quantité invalide', 'danger');
+                return;
+            }
+
+            machines[index].quantite = newQuantity;
+            machines[index].etatcvi = etatcvi;
+            machines[index].dateFinCVI = dateFinCVI;
+            machines[index].position = newposition;
+            machines[index].model = newmodel;
+            machines[index].marque = newmarque;
+	    machines[index].numserie = numserie;
+
+            saveMachines();
+            updateInventory();
+            updateCVIList();
+            showAlert('Produit mis à jour', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('productModal')).hide();
+        }
+
+        // Suppression machine
+        function deleteMachine(index) {
+            if (confirm('Êtes-vous sûr de vouloir supprimer cette machine ?')) {
+                machines.splice(index, 1);
+                saveMachines();
+                updateInventory();
+                updateCVIList();
+                showAlert('Machine supprimée', 'success');
+                bootstrap.Modal.getInstance(document.getElementById('productModal')).hide();
+            }
+        }
+
+        // Scanner
+	function startScanner() {
+    		document.getElementById('start-scan').disabled = true;
+    		document.getElementById('stop-scan').disabled = false;
+
+    		const html5QrCode = new Html5Qrcode("reader");
+
+    		Html5Qrcode.getCameras().then(cameras => {
+        		console.log("Caméras détectées :", cameras);
+        		if (cameras && cameras.length > 0) {
+            			const cameraId = cameras[0]?.id;
+            			if (!cameraId) {
+                			showAlert("ID de caméra introuvable", "danger");
+                			return;
+            			}
+
+            			html5QrCode.start(
+                			cameraId,
+                			{ fps: 10, qrbox: 250 },
+                			onScanSuccess,
+                			errorMessage => {
+                    				console.warn("Erreur scan :", errorMessage);
+                			}		
+            			);
+            			html5QrcodeScanner = html5QrCode;
+        		} else {
+           			 showAlert("Aucune caméra détectée", "danger");
+        		}
+   		}).catch(err => {
+        		console.error("Erreur récupération caméra", err);
+        		showAlert("Erreur accès caméra : " + err, "danger");
+    		});
+	}
+
+
+
+	function stopScanner() {
+    		document.getElementById('start-scan').disabled = false;
+    		document.getElementById('stop-scan').disabled = true;
+
+    		if (html5QrcodeScanner) {
+        		html5QrcodeScanner.stop().then(() => {
+            			html5QrcodeScanner.clear();
+        		}).catch(error => {
+            			console.error("Erreur arrêt scanner:", error);
+        		});
+    		}
+	}
+
+
+        function onScanSuccess(decodedText) {
+    		stopScanner();
+
+    		const parts = decodedText.split('|');
+   		if (parts.length < 2) {
+        		showAlert('QR Code invalide', 'danger');
+        		return;
+    		}
+
+    		const [marque, model] = parts.map(p => p.toLowerCase());
+
+    		const foundIndex = machines.findIndex(m =>
+        		m.marque.toLowerCase() === marque && 
+        		m.model.toLowerCase() === model
+    		);
+
+    		if (foundIndex !== -1) {
+        		showProductModal(foundIndex);
+    		} else {
+        		showAlert('Produit non trouvé', 'danger');
+    		}
+	}
+
+	function manualSearch() {
+    		const query = document.getElementById('manual-search').value.trim().toLowerCase();
+    		const resultsContainer = document.getElementById('search-results');
+    		resultsContainer.innerHTML = '';
+
+   		if (!query) {
+        		showAlert('Veuillez entrer un terme de recherche.', 'warning');
+        		return;
+    		}
+
+    		const results = machines
+        		.map((m, i) => ({ machine: m, index: i }))
+        		.filter(({ machine }) => 
+            			machine.marque.toLowerCase().includes(query) ||
+            			machine.model.toLowerCase().includes(query) ||
+            			machine.position.toLowerCase().includes(query)
+        		);
+
+    		if (results.length === 0) {
+        		showAlert('Aucun produit trouvé', 'danger');
+        		return;
+    		}
+
+    		let html = `<div class="list-group">`;
+    		results.forEach(({ machine, index }) => {
+        		html += `
+            			<div class="list-group-item d-flex justify-content-between align-items-center">
+                			<div>
+                    				<strong>${machine.marque}</strong> - ${machine.model} (${machine.quantite} unités)
+                    				<br><small>Position : ${machine.position}</small>
+                			</div>
+                			<button class="btn btn-sm btn-primary" onclick="showProductModal(${index})">Modifier</button>
+            			</div>
+       	 		`;
+    		});
+   		html += `</div>`;
+    		resultsContainer.innerHTML = html;
+	}
+
+
+        // Helpers
+        function toggleCVIDate() {
+            document.getElementById('date-cvi-container').style.display = 
+                document.getElementById('etatcvi').value === 'oui' ? 'block' : 'none';
+        }
+
+        function saveMachines() {
+            localStorage.setItem('machines', JSON.stringify(machines));
+        }
+
+        function showAlert(message, type) {
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type} alert-dismissible fade show`;
+            alert.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            document.getElementById('alert-placeholder').appendChild(alert);
+            
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
+        }
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+</body></html>
