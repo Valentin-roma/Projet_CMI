@@ -98,7 +98,7 @@
 
                 <button type="submit" class="btn btn-primary">Enregistrer</button>
                 <button type="button" class="btn btn-secondary" onclick="showView('home')">Annuler</button>
-		<button type="button" class="btn btn-sm btn-outline-success" onclick="printQRCode">Imprimer le QR</button>
+		<button type="button" class="btn btn-sm btn-outline-success" onclick="printQRCode()">Imprimer le QR</button>
             </form>
         </div>
 
@@ -294,7 +294,7 @@
             			<input type="date" class="form-control" id="edit-unit-date-cvi">
         		</div>
         		<button type="submit" class="btn btn-success">Enregistrer</button>
-			<button class="btn btn-sm btn-danger" onclick="deleteUnit(${index}, ${i})">Supprimer</button>
+			<button class="btn btn-sm btn-danger" onclick="deleteCurrentUnit()">Supprimer</button>
         		
     		</form>
 	     </div>
@@ -561,7 +561,30 @@
     		return html;
 	}
 
-	
+	function deleteCurrentUnit() {
+    		if (currentMachineIndex === null || currentUnitIndex === null) return;
+    
+    		if (confirm("Êtes-vous sûr de vouloir supprimer cette unité ?")) {
+        		const machine = machines[currentMachineIndex];
+        
+        // Suppression de l'unité
+        		machine.unites.splice(currentUnitIndex, 1);
+        		machine.quantite = machine.unites.length;
+
+        // Si plus d'unités, suppression de la machine
+        		if (machine.quantite === 0) {
+            			machines.splice(currentMachineIndex, 1);
+            			showAlert("Machine supprimée car elle n'a plus d'unités", "warning");
+        		} else {
+            			showAlert("Unité supprimée avec succès", "success");
+        		}
+
+        		saveMachines();
+        		updateInventory();
+        		updateCVIList();
+        		showView('list-machines'); // Retour à la liste dans tous les cas
+    		}
+	}
 	function deleteUnit(machineIndex, unitIndex) {
     		const machine = machines[machineIndex];
     		if (!machine.unites || !machine.unites[unitIndex]) return;
@@ -570,6 +593,12 @@
 
     		machine.unites.splice(unitIndex, 1);
     		machine.quantite = machine.unites.length;
+
+		if (machine.quantite === 0) {
+        		machines.splice(machineIndex, 1);
+        		showAlert("Machine supprimée car elle n'a plus d'unités", "warning");
+        		showView('list-machines');
+    		}
 
     		saveMachines();
     		updateInventory();
@@ -591,6 +620,13 @@
     		}
 
   		machines[index].unites = newUnits;
+		machines[index].quantite = newUnits.length; // Synchronisation de la quantité
+
+    		if (machines[index].quantite === 0) {
+        		machines.splice(index, 1);
+        		showAlert("Machine supprimée car elle n'a plus d'unités", "warning");
+    		}
+
     		saveMachines();
     		updateCVIList();
     		showAlert('Unités mises à jour avec succès', 'success');
@@ -1119,129 +1155,102 @@
    		html += `</div>`;
     		resultsContainer.innerHTML = html;
 	}
-	async function printQRCode() {
-    // Récupère les données du formulaire
-    		const marque = document.getElementById('marque').value.trim();
-    		const model = document.getElementById('model').value.trim();
-    		const quantite = parseInt(document.getElementById('quantite').value);
-    
-    // Validation des champs
-    		if (!marque || !model || isNaN(quantite)) {
-        		showAlert('Veuillez remplir tous les champs avant d\'imprimer', 'danger');
-        		return;
-    		}
+async function printQRCode() {
+    const marque = document.getElementById('marque').value.trim();
+    const model = document.getElementById('model').value.trim();
+    const quantite = parseInt(document.getElementById('quantite').value);
 
-    		try {
-        // Demande l'accès à l'imprimante (WebUSB API)
-        		const printer = await navigator.usb.requestDevice({
-            			filters: [{ vendorId: 0x0483 }] // ID fabricant Phomemo
-        		});
-
-        		await printer.open();
-        		await printer.selectConfiguration(1);
-        		await printer.claimInterface(0);
-
-        // Génère et imprime un QR Code pour chaque unité
-        		for (let i = 0; i < quantite; i++) {
-            			const numserie = document.getElementById(`numserie-${i}`)?.value.trim() || '';
-            			const qrData = `${marque}|${model}|${numserie}`;
-            
-            // Génère le QR Code
-            			const qr = qrcode(0, 'L');
-            			qr.addData(qrData);
-            			qr.make();
-            
-            // Convertit en image
-            			const qrImg = qr.createDataURL(10);
-            
-            // Crée un canvas pour l'impression
-            			const canvas = document.createElement('canvas');
-            			canvas.width = 384; // Largeur standard des imprimantes Phomemo
-            			canvas.height = 200;
-            			const ctx = canvas.getContext('2d');
-            
-            // Fond blanc
-            			ctx.fillStyle = 'white';
-            			ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            // Dessine le QR Code
-            			const img = new Image();
-            			img.src = qrImg;
-            			await new Promise(resolve => {
-                			img.onload = () => {
-                    				ctx.drawImage(img, 10, 10, 150, 150);
-                    				resolve();
-                			};
-            			});
-            
-            // Ajoute le texte
-            			ctx.fillStyle = 'black';
-            			ctx.font = '16px Arial';
-            			ctx.fillText(`Marque: ${marque}`, 170, 30);
-            			ctx.fillText(`Modèle: ${model}`, 170, 60);
-            			ctx.fillText(`S/N: ${numserie}`, 170, 90);
-
-            
-            // Convertit en données d'impression
-            			const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            			const printData = convertToPhomemoFormat(imageData);
-            
-            // Envoie à l'imprimante
-            			await printer.transferOut(1, printData);
-        		}
-        		
-        		showAlert(`${quantite} étiquette(s) imprimée(s) avec succès`, 'success');
-    		} catch (error) {
-        		console.error('Erreur d\'impression:', error);
-        		showAlert(`Erreur d'impression: ${error.message}`, 'danger');
-    		} finally {
-        		if (printer && printer.opened) {
-            			await printer.close();
-        	}
-    	}
-	}
-
-	function convertToPhomemoFormat(imageData) {
-    // Convertit les données d'image au format attendu par Phomemo
-    // (Cette partie dépend du modèle spécifique de votre Phomemo)
-    // Voici un exemple basique pour les modèles courants :
-    
-    	const width = imageData.width;
-    	const height = imageData.height;
-    	const pixels = imageData.data;
-    
-    // Format ESC/POS simplifié
-    	const commands = [
-        	0x1B, 0x40, // Initialize
-        	0x1B, 0x33, 0x00, // Set line spacing
-        	0x1B, 0x4A, 0x01, // Print and feed
-    	];
-    
-    // Ajoute les données d'image
-    	for (let y = 0; y < height; y += 24) {
-        	commands.push(0x1B, 0x2A, 33, width & 0xFF, (width >> 8) & 0xFF);
-        
-        	for (let x = 0; x < width; x++) {
-            		for (let k = 0; k < 3; k++) {
-                		let slice = 0;
-                
-                		for (let b = 0; b < 8; b++) {
-                    			const i = (y + k*8 + b) * width * 4 + x * 4;
-                    			const grayscale = pixels[i] * 0.3 + pixels[i+1] * 0.59 + pixels[i+2] * 0.11;
-                    			if (grayscale < 128) {
-                        			slice |= 1 << (7 - b);
-                    			}
-                		}
-                
-                		commands.push(slice);
-            	}
-        }
-        
-        commands.push(0x0A); // Line feed
+    if (!marque || !model || isNaN(quantite)) {
+        showAlert('Veuillez remplir tous les champs avant d\'imprimer', 'danger');
+        return;
     }
+
+    // Crée une fenêtre d'impression
+    const printWindow = window.open('', '_blank');
     
-    return new Uint8Array(commands);
+    // Générer le contenu HTML pour l'impression
+    let printContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Impression QR Codes</title>
+        <style>
+            @page {
+                size: auto;
+                margin: 0;
+            }
+            body {
+                margin: 0;
+                padding: 0;
+                height: 100vh;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+
+            }
+            .qr-container {
+                width: 100%;
+                height: 100%;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                page-break-after: always;
+            }
+            .qr-code {
+                width: 90% !important;
+                height: auto !important;
+                max-width: 100%;
+                max-height: 100%;
+            }
+            .infos {
+                text-align: center;
+                font-size: 30px;
+                margin-top: 20px;
+                font-weight: bold;
+                width: 100%;
+            }
+        </style>
+    </head>
+    <body>`;
+
+    // Ajouter une étiquette pour chaque unité
+    for (let i = 0; i < quantite; i++) {
+        const numserie = document.getElementById(`numserie-${i}`)?.value.trim() || '';
+        const position = document.getElementById(`position-${i}`)?.value.trim() || '';
+        
+        // Générer le QR code
+        const qr = qrcode(0, 'H'); // Niveau de correction haute
+        const qrData = `${marque}|${model}|${numserie}`;
+        qr.addData(qrData);
+        qr.make();
+        const qrImg = qr.createImgTag(40); 
+
+        printContent += `
+        <div class="qr-container">
+            ${qrImg}
+            <div class="infos">
+                <div>Marque : ${marque}</div>
+		<div>Modèle : ${model}</div>
+                <div>S/N : ${numserie || ''}</div>
+            </div>
+        </div>`;
+    }
+
+    printContent += `
+    </body>
+    </html>`;
+
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+
+    // Délai pour permettre le chargement avant impression
+    setTimeout(() => {
+        printWindow.print();
+    }, 0.1);
 }
+
         // Helpers
         function toggleCVIDate() {
             document.getElementById('date-cvi-container').style.display = 
